@@ -4,18 +4,44 @@
 
 To make it easy for you to get started with GitLab, here's a list of recommended next steps.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+- [Prerequisites](#prerequisites)
+- [Configuration](#configuration)
+- [Running the Application](#running-the-application)
+  - [Natively](#natively)
+  - [Using Docker](#using-docker)
+- [Folder Structure](#folder-structure)
+- [Endpoints](#endpoints)
+- [Examples](#examples)
 
 ## Add your files
 
 - [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
 - [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
 
-```
-cd existing_repo
-git remote add origin https://gitlab.osti.gov/ai-at-argonne/argo-gateway-api/argo-proxy-tools/argo-openai-proxy.git
-git branch -M main
-git push -uf origin main
+## Configuration
+
+The application is configured using a `config.yaml` file. This file contains settings such as the ARGO API URLs, port number, and logging behavior. Below is a breakdown of the configuration options:
+
+### Configuration Options
+
+- **`port`**: The port number on which the application will listen. Default is `44497`.
+- **`argo_url`**: The URL of the ARGO API for chat and completions. Default is `"https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"`.
+- **`argo_embedding_url`**: The URL of the ARGO API for embeddings. Default is `"https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/embed/"`.
+- **`user`**: The user name to be used in the requests. Default is `"cels"`.
+- **`verbose`**: A boolean flag to control whether to print input and output for debugging. Default is `true`.
+- **`num_workers`**: The number of worker processes for Gunicorn. Default is `5`.
+- **`timeout`**: The timeout for requests in seconds. Default is `600`.
+
+### Example `config.yaml`
+
+```yaml
+port: 44497
+argo_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/"
+argo_embedding_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/embed/"
+user: "cels"
+verbose: true
+num_workers: 5
+timeout: 600
 ```
 
 ## Integrate with your tools
@@ -56,48 +82,62 @@ Choose a self-explaining name for your project.
 
 ## Description
 
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+## Folder Structure
 
-## Badges
+```
+$ tree .
+.
+├── app.py
+├── argoproxy
+│   ├── chat.py
+│   ├── completions.py
+│   ├── embed.py
+│   ├── extras.py
+│   └── utils.py
+├── compose.yaml
+├── config.yaml
+├── Dockerfile
+├── Dockerfile.txt
+├── README.md
+├── requirements.txt
+├── run_app.sh
+└── test
+    ├── chat_example.py
+    ├── embedding_example.py
+    └── o1-example.py
 
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+2 directories, 16 files
+```
 
-## Visuals
+## Endpoints
 
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+The application provides the following endpoints:
 
-## Installation
+- **`/v1/chat`**: Directly proxies requests to the ARGO API.
+- **`/v1/chat/completions`**: Proxies requests to the ARGO API and converts the response to OpenAI-compatible format.
+- **`/v1/completions`**: Proxies requests to the ARGO API and converts the response to OpenAI-compatible format (legacy).
+- **`/v1/embed`**: Proxies requests to the ARGO Embedding API.
+- **`/v1/models`**: Returns a list of available models in OpenAI-compatible format.
+- **`/v1/status`**: Returns a simple "hello" response from GPT-4o.
 
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+## Examples
 
-## Usage
+### Chat Example
 
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+For an example of how to use the `/v1/chat/completions` endpoint, see the [ `chat_example.py` ](test/chat_example.py) file.
 
-## Support
+### Embedding Example
 
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+For an example of how to use the `/v1/embed` endpoint, see the [ `embedding_example.py` ](test/embedding_example.py) file.
 
-## Roadmap
+### O1 Example
 
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+For an example of how to use the `/v1/chat` endpoint with the `argo:gpt-o1-preview` model, see the [ `o1-example.py` ](test/o1-example.py) file.
 
-## Contributing
+---
 
-State if you are open to contributions and what your requirements are for accepting them.
+### **Changes Made**
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-
-Show your appreciation to those who have contributed to the project.
-
-## License
-
-For open source projects, say how it is licensed.
-
-## Project status
-
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+1. Added the **Configuration** section with a detailed explanation of the `config.yaml` file and its options.
+2. Included an example `config.yaml` file for reference.
+3. Ensured the **Configuration** section is properly linked in the Table of Contents.
