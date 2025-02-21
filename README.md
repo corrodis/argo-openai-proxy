@@ -7,8 +7,6 @@ To make it easy for you to get started with GitLab, here's a list of recommended
 - [Prerequisites](#prerequisites)
 - [Configuration](#configuration)
 - [Running the Application](#running-the-application)
-  - [Natively](#natively)
-  - [Using Docker](#using-docker)
 - [Folder Structure](#folder-structure)
 - [Endpoints](#endpoints)
 - [Models](#models)
@@ -47,33 +45,25 @@ timeout: 600
 
 ## Integrate with your tools
 
-- [ ] [Set up project integrations](https://gitlab.osti.gov/ai-at-argonne/argo-gateway-api/argo-proxy-tools/argo-openai-proxy/-/settings/integrations)
+1. **Install Dependencies**:
+   Ensure you have Python 3.8 or higher installed. Install the required packages using pip:
 
-## Collaborate with your team
-
-```bash
+   ```bash
    pip install -r requirements.txt
-```
+   ```
 
-Use the built-in continuous integration in GitLab.
+2. **Run the Application**:
+   Use the provided `run_app.sh` script to start the application. By default, the script looks for a `config.yaml` file in the current directory. You can optionally specify a custom path to the configuration file as an argument:
 
-```bash
+   ```bash
+   ./run_app.sh /path/to/config.yaml
+   ```
+
+   If no path is provided, the script will use the default `config.yaml` file in the current directory:
+
+   ```bash
    ./run_app.sh
-```
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-```bash
-   docker build -t argo-proxy .
-```
-
-## Name
-
-```bash
-   ./run_app.sh docker
-```
+   ```
 
 ## Folder Structure
 
@@ -116,23 +106,6 @@ The application provides the following endpoints:
 ## Models
 
 This application provides proxy to the following models. You can call the models via either the argo original name or argo-proxy name.
-
-<!-- MODEL_AVAIL = {
-    "argo:gpt-3.5-turbo": "gpt35",
-    "argo:gpt-3.5-turbo-16k": "gpt35large",
-    "argo:gpt-4": "gpt4",
-    "argo:gpt-4-32k": "gpt4large",
-    "argo:gpt-4-turbo-preview": "gpt4turbo",
-    "argo:gpt-4o": "gpt4o",
-    "argo:gpt-o1-preview": "gpto1preview",
-    "argo:gpt-o1-mini": "gpto1mini",
-}
-MODEL_AVAIL = {
-    "argo:text-embedding-ada-002": "ada002",
-    "argo:text-embedding-3-small": "v3small",
-    "argo:text-embedding-3-large": "v3large",
-} -->
-<!-- make a table of argo proxy name and original name -->
 
 ### chat models
 
