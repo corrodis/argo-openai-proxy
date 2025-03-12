@@ -16,6 +16,7 @@ To make it easy for you to get started with GitLab, here's a list of recommended
 - [Endpoints](#endpoints)
 - [Models](#models)
 - [Examples](#examples)
+- [Bug reports and Contributions](#bug-reports-and-contributions)
 
 ## Folder Structure
 
