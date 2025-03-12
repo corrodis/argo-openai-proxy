@@ -1,6 +1,11 @@
 # argo-openai-proxy
 
-## Getting started
+This project is a proxy application that forwards requests to an ARGO API and optionally converts the responses to be compatible with OpenAI's API format. You can couple it with [autossh-tunnel-dockerized](https://github.com/Oaklight/autossh-tunnel-dockerized) or other secure connection tool.
+
+## NOTICE OF USAGE
+
+The machine or server making the API calls to Argo must be connected to Argonne internal network or through VPN on an Argonne-managed computer if you are working off-site. Meaning your instance of argo proxy should always be on premise at some Argonne Machine.
+The software is provided as is, without any warranties or guarantees of any kind, either express or implied. By using this software, you agree that the authors, contributors, and any affiliated organizations shall not be held liable for any damages, losses, or issues arising from its use. This includes, but is not limited to, direct, indirect, incidental, consequential, or punitive damages. You are solely responsible for ensuring that the software meets your requirements and for any outcomes resulting from its use.
 
 To make it easy for you to get started with GitLab, here's a list of recommended next steps.
 
@@ -153,12 +158,13 @@ This application provides proxy to the following models. You can call the models
 ### Chat Completion Example
 
 For an example of how to use the `/v1/chat/completions`, /v1/completions`, /v1/chat` endpoint, see the followings:
+
 - [ `chat_completions_example.py` ](examples/chat_completions_example.py)
 - [ `chat_completions_example_stream.py` ](examples/chat_completions_example_stream.py)
 - [ `completions_example.py` ](examples/completions_example.py)
 - [ `completions_example_stream.py` ](examples/completions_example_stream.py)
 - [ `chat_example.py` ](examples/chat_example.py)
-- [ `chat_example_stream.py` ](examples/chat_example_stream.py) 
+- [ `chat_example_stream.py` ](examples/chat_example_stream.py)
 
 ### Embedding Example
 
