@@ -35,11 +35,13 @@ To make it easy for you to get started with GitLab, here's a list of recommended
 
 ### Prerequisites
 
-- Python 3.10 or higher is required
+- **Python 3.10+** is required \
+  recommend to use conda/mamba or pipx etc to manage exclusive environment \
+  **Conda/Mamba** Download and install from: https://conda-forge.org/download/
+
 - Install dependencies:
 
   ```bash
-  # recommend to use conda/mamba or pipx etc to manage exclusive environment.
   pip install -r requirements.txt
   ```
 
