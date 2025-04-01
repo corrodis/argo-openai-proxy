@@ -178,22 +178,14 @@ Details of how to make such override in different query flavors: [Timeout Overri
 
 #### Chat Completion Example
 
-<<<<<<< HEAD
 For an example of how to use the `/v1/chat/completions`, /v1/completions`, /v1/chat` endpoint, see the followings:
 
-- [ `chat_completions_example.py` ](examples/chat_completions_example.py)
-- [ `chat_completions_example_stream.py` ](examples/chat_completions_example_stream.py)
-- [ `completions_example.py` ](examples/completions_example.py)
-- [ `completions_example_stream.py` ](examples/completions_example_stream.py)
-- [ `chat_example.py` ](examples/chat_example.py)
-- # [ `chat_example_stream.py` ](examples/chat_example_stream.py)
 - [chat_completions_example.py](examples/chat_completions_example.py)
 - [chat_completions_example_stream.py](examples/chat_completions_example_stream.py)
 - [completions_example.py](examples/completions_example.py)
 - [completions_example_stream.py](examples/completions_example_stream.py)
 - [chat_example.py](examples/chat_example.py)
 - [chat_example_stream.py](examples/chat_example_stream.py)
-  > > > > > > > 75e250f (docs: update README with improved formatting and details)
 
 #### Embedding Example
 
