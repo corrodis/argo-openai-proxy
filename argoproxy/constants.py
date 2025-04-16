@@ -8,7 +8,7 @@ CHAT_MODELS = {
     "argo:gpt-4o-latest": "gpt4olatest",
     "argo:gpt-o1-mini": "gpto1mini",
     "argo:gpt-o3-mini": "gpto3mini",
-    # "argo:gpt-o1": "gpto1",
+    "argo:gpt-o1": "gpto1",
 }
 
 EMBED_MODELS = {
