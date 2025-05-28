@@ -6,8 +6,6 @@ This project is a proxy application that forwards requests to an ARGO API and op
 
 The machine or server making API calls to Argo must be connected to the Argonne internal network or through a VPN on an Argonne-managed computer if you are working off-site. Your instance of the argo proxy should always be on-premise at an Argonne machine. The software is provided "as is," without any warranties. By using this software, you accept that the authors, contributors, and affiliated organizations will not be liable for any damages or issues arising from its use. You are solely responsible for ensuring the software meets your requirements.
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
 - [Notice of Usage](#notice-of-usage)
 - [Deployment](#deployment)
   - [Prerequisites](#prerequisites)
