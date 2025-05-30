@@ -4,7 +4,7 @@ _CHAT_MODELS = {
     "gpt35large": "argo:gpt-3.5-turbo-16k",
     "gpt4": "argo:gpt-4",
     "gpt4large": "argo:gpt-4-32k",
-    "gpt4turbo": "argo:gpt-4-turbo-preview",
+    "gpt4turbo": "argo:gpt-4-turbo",
     "gpt4o": "argo:gpt-4o",
     "gpt4olatest": "argo:gpt-4o-latest",
     "gpto1mini": ["argo:gpt-o1-mini", "argo:o1-mini"],

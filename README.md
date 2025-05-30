@@ -207,7 +207,7 @@ Details of how to make such override in different query flavors: [Timeout Overri
 | `gpt35large`             | `argo:gpt-3.5-turbo-16k`                 |
 | `gpt4`                   | `argo:gpt-4`                             |
 | `gpt4large`              | `argo:gpt-4-32k`                         |
-| `gpt4turbo`              | `argo:gpt-4-turbo-preview`               |
+| `gpt4turbo`              | `argo:gpt-4-turbo`                       |
 | `gpt4o`                  | `argo:gpt-4o`                            |
 | `gpt4olatest`            | `argo:gpt-4o-latest`                     |
 | `gpto1preview`           | `argo:gpt-o1-preview`, `argo:o1-preview` |
