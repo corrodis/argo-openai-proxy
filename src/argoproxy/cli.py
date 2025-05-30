@@ -95,19 +95,23 @@ def set_config_envs(args: argparse.Namespace):
 
 
 def open_in_editor(config_path: Optional[str] = None):
-    paths_to_try = [config_path] if config_path else [] + PATHS_TO_TRY
+    paths_to_try = [config_path] if config_path else PATHS_TO_TRY
+
+    # Add EDITOR from environment variable if set, followed by defaults
+    editors_to_try = [os.getenv("EDITOR")] if os.getenv("EDITOR") else []
+    editors_to_try += ["notepad"] if os.name == "nt" else ["nano", "vi", "vim"]
 
     for path in paths_to_try:
         if path and os.path.exists(path):
-            try:
-                editor = os.getenv(
-                    "EDITOR", "vi"
-                )  # Default to nano if EDITOR is not set
-                subprocess.run([editor, path])
-                return
-            except Exception as e:
-                logger.error(f"Failed to open editor for {path}: {e}")
-                sys.exit(1)
+            for editor in editors_to_try:
+                try:
+                    subprocess.run([editor, path], check=True)
+                    return
+                except FileNotFoundError:
+                    continue  # Try the next editor in the list
+                except Exception as e:
+                    logger.error(f"Failed to open editor with {editor} for {path}: {e}")
+                    sys.exit(1)
 
     logger.error("No valid configuration file found to edit.")
     sys.exit(1)
