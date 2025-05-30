@@ -2,6 +2,13 @@
 
 This project is a proxy application that forwards requests to an ARGO API and optionally converts the responses to be compatible with OpenAI's API format. It can be used in conjunction with [autossh-tunnel-dockerized](https://github.com/Oaklight/autossh-tunnel-dockerized) or other secure connection tools.
 
+## TL;DR
+
+```bash
+pip install argo-proxy # install the package
+argo-proxy # run the proxy
+```
+
 ## NOTICE OF USAGE
 
 The machine or server making API calls to Argo must be connected to the Argonne internal network or through a VPN on an Argonne-managed computer if you are working off-site. Your instance of the argo proxy should always be on-premise at an Argonne machine. The software is provided "as is," without any warranties. By using this software, you accept that the authors, contributors, and affiliated organizations will not be liable for any damages or issues arising from its use. You are solely responsible for ensuring the software meets your requirements.
@@ -38,6 +45,12 @@ The machine or server making API calls to Argo must be connected to the Argonne 
   **Conda/Mamba** Download and install from: <https://conda-forge.org/download/>
 
 - Install dependencies:
+
+  ```bash
+  pip install argo-proxy
+  ```
+
+  or, if you decide to use dev version (make sure you are at the root of the repo cloned):
 
   ```bash
   pip install .
