@@ -5,8 +5,9 @@ import subprocess
 import sys
 
 from loguru import logger
+from sanic import Sanic
+from sanic.worker.loader import AppLoader
 
-from . import app
 from .__init__ import __version__
 from .config import validate_config
 
@@ -93,11 +94,14 @@ def main():
         # Validate config in main process only
         config_instance = validate_config(args.config, args.show)
         # Run the app with validated config
-        app.app.run(
+        loader = AppLoader("argoproxy.app:app")
+        app = loader.load()
+        app.prepare(
             host=args.host or config_instance.host,
             port=args.port or config_instance.port,
             workers=args.num_worker or config_instance.num_workers,
         )
+        Sanic.serve(primary=app, app_loader=loader)
     except KeyError:
         logger.error("Port not specified in configuration file.")
         sys.exit(1)
