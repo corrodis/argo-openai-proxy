@@ -3,13 +3,14 @@ import argparse
 import os
 import subprocess
 import sys
+from typing import Optional
 
 from loguru import logger
 from sanic import Sanic
 from sanic.worker.loader import AppLoader
 
 from .__init__ import __version__
-from .config import validate_config
+from .config import PATHS_TO_TRY, validate_config
 
 logger.remove()  # Remove default handlers
 logger.add(sys.stdout, colorize=True, format="<level>{message}</level>", level="INFO")
@@ -66,6 +67,13 @@ def parsing_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--edit",
+        "-e",
+        action="store_true",
+        help="Open the configuration file in the system's default editor for editing",
+    )
+
+    parser.add_argument(
         "--version",
         "-V",
         action="version",
@@ -86,8 +94,32 @@ def set_config_envs(args: argparse.Namespace):
         os.environ["VERBOSE"] = str(False)
 
 
+def open_in_editor(config_path: Optional[str] = None):
+    paths_to_try = [config_path] if config_path else [] + PATHS_TO_TRY
+
+    for path in paths_to_try:
+        if path and os.path.exists(path):
+            try:
+                editor = os.getenv(
+                    "EDITOR", "vi"
+                )  # Default to nano if EDITOR is not set
+                subprocess.run([editor, path])
+                return
+            except Exception as e:
+                logger.error(f"Failed to open editor for {path}: {e}")
+                sys.exit(1)
+
+    logger.error("No valid configuration file found to edit.")
+    sys.exit(1)
+
+
 def main():
     args = parsing_args()
+
+    if args.edit:
+        open_in_editor(args.config)
+        return
+
     set_config_envs(args)
 
     try:
