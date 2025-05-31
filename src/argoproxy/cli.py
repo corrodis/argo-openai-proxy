@@ -26,12 +26,6 @@ def parsing_args() -> argparse.Namespace:
         default=None,
     )
     parser.add_argument(
-        "--show",
-        "-s",
-        action="store_true",
-        help="Show the current configuration during launch",
-    )
-    parser.add_argument(
         "--host",
         "-H",
         type=str,
@@ -72,7 +66,18 @@ def parsing_args() -> argparse.Namespace:
         action="store_true",
         help="Open the configuration file in the system's default editor for editing",
     )
-
+    parser.add_argument(
+        "--validate",
+        "-vv",
+        action="store_true",
+        help="Validate the configuration file and exit",
+    )
+    parser.add_argument(
+        "--show",
+        "-s",
+        action="store_true",
+        help="Show the current configuration during launch",
+    )
     parser.add_argument(
         "--version",
         "-V",
@@ -80,6 +85,7 @@ def parsing_args() -> argparse.Namespace:
         version=f"%(prog)s {__version__}",
         help="Show the version and exit.",
     )
+
     args = parser.parse_args()
 
     return args
@@ -129,6 +135,9 @@ def main():
     try:
         # Validate config in main process only
         config_instance = validate_config(args.config, args.show)
+        if args.validate:
+            logger.info("Configuration validation successful.")
+            return
         # Run the app with validated config
         loader = AppLoader("argoproxy.app:app")
         app = loader.load()
