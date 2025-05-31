@@ -47,10 +47,20 @@ The machine or server making API calls to Argo must be connected to the Argonne 
   **Conda/Mamba** Download and install from: <https://conda-forge.org/download/> </br>
   **pipx** Download and install from: <https://pipx.pypa.io/stable/installation/>
 
-- Install dependencies ![PyPI - Version](https://img.shields.io/pypi/v/argo-proxy):
+- Install dependencies:
+
+  PyPI current version: ![PyPI - Version](https://img.shields.io/pypi/v/argo-proxy)
 
   ```bash
   pip install argo-proxy
+  ```
+
+  To upgrade:
+
+  ```bash
+  argo-proxy --version  # Display current version
+  # Check against PyPI version
+  pip install argo-proxy --upgrade
   ```
 
   or, if you decide to use dev version (make sure you are at the root of the repo cloned):
