@@ -40,9 +40,10 @@ The machine or server making API calls to Argo must be connected to the Argonne 
 
 ### Prerequisites
 
-- **Python 3.10+** is required \
-  recommend to use conda/mamba or pipx etc to manage exclusive environment \
-  **Conda/Mamba** Download and install from: <https://conda-forge.org/download/>
+- **Python 3.10+** is required. </br>
+  It is recommended to use conda, mamba, or pipx, etc., to manage an exclusive environment. </br>
+  **Conda/Mamba** Download and install from: <https://conda-forge.org/download/> </br>
+  **pipx** Download and install from: <https://pipx.pypa.io/stable/installation/>
 
 - Install dependencies:
 
@@ -58,7 +59,7 @@ The machine or server making API calls to Argo must be connected to the Argonne 
 
 ### Configuration File
 
-If you don't want to bother manually configure it, the [First-Time Setup](#first-time-setup) will automatically create it for you.
+If you don't want to manually configure it, the [First-Time Setup](#first-time-setup) will automatically create it for you.
 
 The application uses `config.yaml` for configuration. Here's an example:
 
@@ -104,14 +105,14 @@ When running without an existing config file:
 Example session:
 
 ```bash
-$ argo-proxy 
+$ argo-proxy
 No valid configuration found.
-Would you like to create it from config.sample.yaml? [Y/n]: 
+Would you like to create it from config.sample.yaml? [Y/n]:
 Creating new configuration...
-Use port [52226]? [Y/n/<port>]: 
+Use port [52226]? [Y/n/<port>]:
 Enter your username: your_username
-Enable verbose mode? [Y/n] 
-Set timeout to [600] seconds? [Y/n/<timeout>] 
+Enable verbose mode? [Y/n]
+Set timeout to [600] seconds? [Y/n/<timeout>]
 Created new configuration at: /home/your_username/.config/argoproxy/config.yaml
 Using port 52226...
 Validating URL connectivity...
@@ -138,20 +139,20 @@ Current configuration:
 | -------------------- | ------------------------------------------------------------ | ------------------ |
 | `host`               | Host address to bind the server to                           | `0.0.0.0`          |
 | `port`               | Application port (random available port selected by default) | randomly assigned  |
-| `argo_url`           | ARGO chat API URL                                            | Dev URL (for now)  |
-| `argo_stream_url`    | ARGO stream API URL                                          | Dev URL (for now)  |
-| `argo_embedding_url` | ARGO embedding API URL                                       | Prod URL           |
+| `argo_url`           | Argo Chat API URL                                            | Dev URL (for now)  |
+| `argo_stream_url`    | Argo Stream API URL                                          | Dev URL (for now)  |
+| `argo_embedding_url` | Argo Embedding API URL                                       | Prod URL           |
 | `user`               | Your username                                                | (Set during setup) |
 | `verbose`            | Debug logging                                                | `true`             |
 | `num_workers`        | Worker processes                                             | `5`                |
 | `timeout`            | Request timeout (seconds)                                    | `600`              |
 
-### `argo-proxy` Cli Available Options
+### `argo-proxy` CLI Available Options
 
 ```bash
 $ argo-proxy -h
-usage: argo-proxy [-h] [--show] [--host HOST] [--port PORT] [--num-worker NUM_WORKER]
-                  [--verbose | --quiet] [--version]
+usage: argo-proxy [-h] [--host HOST] [--port PORT] [--num-worker NUM_WORKER] [--verbose | --quiet]
+                  [--edit] [--validate] [--show] [--version]
                   [config]
 
 Argo Proxy CLI
@@ -161,14 +162,38 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  --show, -s            Show the current configuration during launch
   --host HOST, -H HOST  Host address to bind the server to
   --port PORT, -p PORT  Port number to bind the server to
   --num-worker NUM_WORKER, -n NUM_WORKER
                         Number of worker processes to run
   --verbose, -v         Enable verbose logging, override if `verbose` set False in config
   --quiet, -q           Disable verbose logging, override if `verbose` set True in config
+  --edit, -e            Open the configuration file in the system's default editor for editing
+  --validate, -vv       Validate the configuration file and exit
+  --show, -s            Show the current configuration during launch
   --version, -V         Show the version and exit.
+```
+
+### Management Utilities
+
+The following options help manage the configuration file:
+
+- `--edit, -e`: Open the configuration file in the system's default editor for editing.
+  - If no config file is specified, it will search in default locations (~/.config/argoproxy/, ~/.argoproxy/, or current directory)
+  - Tries common editors like nano, vi, vim (unix-like systems) or notepad (Windows)
+
+- `--validate, -vv`: Validate the configuration file and exit without starting the server.
+  - Useful for checking config syntax and connectivity before deployment
+
+- `--show, -s`: Show the current configuration during launch.
+  - Displays the fully resolved configuration including defaults
+  - Can be used with `--validate` to just display configuration without starting the server
+
+```bash
+# Example usage:
+argo-proxy --edit  # Edit config file
+argo-proxy --validate --show  # Validate and display config
+argo-proxy --show  # Show config at startup
 ```
 
 ## Usage
@@ -227,7 +252,7 @@ Details of how to make such override in different query flavors: [Timeout Overri
 
 #### Chat Completion Example
 
-For an example of how to use the `/v1/chat/completions`, /v1/completions`, /v1/chat` endpoint, see the followings:
+For examples of how to use the `/v1/chat/completions`, `/v1/completions`, and `/v1/chat` endpoints, see the following:
 
 - [chat_completions_example.py](examples/chat_completions_example.py)
 - [chat_completions_example_stream.py](examples/chat_completions_example_stream.py)
