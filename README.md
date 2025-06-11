@@ -93,12 +93,18 @@ To start the application:
 argo-proxy [config_path]
 ```
 
-- Without arguments: search for `config.yaml` under `~/.config/argoproxy/`, `~/.argoproxy/`, or current directory
-- With path: uses specified config file
+- Without arguments: search for `config.yaml` under:
+  - current directory
+  - `~/.config/argoproxy/`
+  - `~/.argoproxy/`
+  The first one found will be used.
+- With path: uses specified config file, if exists. Otherwise, falls back to default search.
 
   ```bash
   argo-proxy /path/to/config.yaml
   ```
+
+- With `--edit` flag: opens the config file in the default editor for modification.
 
 ### First-Time Setup
 
