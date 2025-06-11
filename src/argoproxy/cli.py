@@ -36,12 +36,6 @@ def parsing_args() -> argparse.Namespace:
         type=int,
         help="Port number to bind the server to",
     )
-    parser.add_argument(
-        "--num-worker",
-        "-n",
-        type=int,
-        help="Number of worker processes to run",
-    )
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
