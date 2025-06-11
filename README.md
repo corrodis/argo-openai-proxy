@@ -156,8 +156,8 @@ Current configuration:
 
 ```bash
 $ argo-proxy -h
-usage: argo-proxy [-h] [--host HOST] [--port PORT] [--verbose | --quiet]
-                  [--edit] [--validate] [--show] [--version]
+usage: argo-proxy [-h] [--host HOST] [--port PORT] [--verbose | --quiet] [--edit]
+                  [--validate] [--show] [--version]
                   [config]
 
 Argo Proxy CLI
@@ -171,7 +171,8 @@ options:
   --port PORT, -p PORT  Port number to bind the server to
   --verbose, -v         Enable verbose logging, override if `verbose` set False in config
   --quiet, -q           Disable verbose logging, override if `verbose` set True in config
-  --edit, -e            Open the configuration file in the system's default editor for editing
+  --edit, -e            Open the configuration file in the system's default editor for
+                        editing
   --validate, -vv       Validate the configuration file and exit
   --show, -s            Show the current configuration during launch
   --version, -V         Show the version and exit.
