@@ -31,7 +31,6 @@ class ArgoConfig:
         "argo_url",
         "argo_embedding_url",
         "user",
-        "num_workers",
     ]
 
     # Configuration fields with default values
@@ -46,7 +45,6 @@ class ArgoConfig:
         "https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/"
     )
     verbose: bool = True
-    num_workers: int = 5
 
     @classmethod
     def from_dict(cls, config_dict: dict):
@@ -347,7 +345,6 @@ def create_config() -> ArgoConfig:
         ),
         user=_get_valid_username(),
         verbose=_get_yes_no_input(prompt="Enable verbose mode? [Y/n] "),
-        num_workers=int(os.environ.get("NUM_WORKERS", 5)),
     )
 
     config_path = save_config(config_data)

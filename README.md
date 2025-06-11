@@ -83,7 +83,6 @@ argo_stream_url: "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/stream
 argo_embedding_url: "https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/"
 user: "your_username" # set during first-time setup
 verbose: true # can be changed during setup
-num_workers: 5
 ```
 
 ### Running the Application
@@ -135,8 +134,7 @@ Current configuration:
     "argo_url": "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/",
     "argo_stream_url": "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/streamchat/",
     "argo_embedding_url": "https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/",
-    "verbose": true,
-    "num_workers": 5
+    "verbose": true
 }
 --------------------------------------
 # ... proxy server starting info display ...
@@ -153,13 +151,12 @@ Current configuration:
 | `argo_embedding_url` | Argo Embedding API URL                                       | Prod URL           |
 | `user`               | Your username                                                | (Set during setup) |
 | `verbose`            | Debug logging                                                | `true`             |
-| `num_workers`        | Worker processes                                             | `5`                |
 
 ### `argo-proxy` CLI Available Options
 
 ```bash
 $ argo-proxy -h
-usage: argo-proxy [-h] [--host HOST] [--port PORT] [--num-worker NUM_WORKER] [--verbose | --quiet]
+usage: argo-proxy [-h] [--host HOST] [--port PORT] [--verbose | --quiet]
                   [--edit] [--validate] [--show] [--version]
                   [config]
 
@@ -172,8 +169,6 @@ options:
   -h, --help            show this help message and exit
   --host HOST, -H HOST  Host address to bind the server to
   --port PORT, -p PORT  Port number to bind the server to
-  --num-worker NUM_WORKER, -n NUM_WORKER
-                        Number of worker processes to run
   --verbose, -v         Enable verbose logging, override if `verbose` set False in config
   --quiet, -q           Disable verbose logging, override if `verbose` set True in config
   --edit, -e            Open the configuration file in the system's default editor for editing
