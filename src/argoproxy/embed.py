@@ -5,6 +5,8 @@ import aiohttp
 from aiohttp import web
 from loguru import logger
 
+from .types import CreateEmbeddingResponse, Embedding
+
 from .config import ArgoConfig
 from .constants import EMBED_MODELS
 from .utils import count_tokens, make_bar, resolve_model_name
@@ -42,22 +44,18 @@ def make_it_openai_embeddings_compat(
         data = []
         for embedding in custom_response_dict["embedding"]:
             data.append(
-                {
-                    "object": "embedding",
-                    "index": 0,
-                    "embedding": embedding,
-                }
+                Embedding(
+                    embedding=embedding,
+                    index=0,
+                )
             )
-        openai_response = {
-            "object": "list",
-            "data": data,
-            "model": model_name,
-            "usage": {
-                "prompt_tokens": prompt_tokens,
-                "total_tokens": prompt_tokens,
-            },
-        }
-        return openai_response
+        openai_response = CreateEmbeddingResponse(
+            data=data,
+            model=model_name,
+            usage=prompt_tokens,
+            object=prompt_tokens,
+        )
+        return openai_response.model_dump()
 
     except json.JSONDecodeError as err:
         return {"error": f"Error decoding JSON: {err}"}
