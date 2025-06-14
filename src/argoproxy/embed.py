@@ -1,31 +1,33 @@
 import json
 from http import HTTPStatus
+from typing import Any, Dict, List, Union
 
 import aiohttp
 from aiohttp import web
 from loguru import logger
 
-from .types import CreateEmbeddingResponse, Embedding
-
 from .config import ArgoConfig
 from .constants import EMBED_MODELS
+from .types import CreateEmbeddingResponse, Embedding, Usage
 from .utils import count_tokens, make_bar, resolve_model_name
 
 DEFAULT_MODEL = "v3small"
 
 
 def make_it_openai_embeddings_compat(
-    custom_response,
-    model_name,
-    prompt,
-):
-    """
-    Converts the custom API response to an OpenAI compatible API response.
+    custom_response: Union[str, Dict[str, Any]],
+    model_name: str,
+    prompt: Union[str, List[str]],
+) -> Union[Dict[str, Any], str]:
+    """Converts a custom API response to an OpenAI-compatible response.
 
-    :param custom_response: JSON response from the custom API.
-    :param model_name: The model used for the completion.
-    :param prompt: The input prompt used in the request.
-    :return: OpenAI compatible JSON response.
+    Args:
+        custom_response (Union[str, Dict[str, Any]]): JSON response from the custom API.
+        model_name (str): The name of the model used for generating embeddings.
+        prompt (Union[str, List[str]]): The input prompt or list of prompts used in the request.
+
+    Returns:
+        Union[Dict[str, Any], str]: An OpenAI-compatible response or error message.
     """
     try:
         # Parse the custom response
@@ -40,20 +42,18 @@ def make_it_openai_embeddings_compat(
         else:
             prompt_tokens = sum(count_tokens(text, model_name) for text in prompt)
 
-        # Construct the OpenAI compatible response
-        data = []
-        for embedding in custom_response_dict["embedding"]:
-            data.append(
-                Embedding(
-                    embedding=embedding,
-                    index=0,
-                )
-            )
+        # Construct the OpenAI-compatible response
+        data = [
+            Embedding(embedding=embedding, index=0)
+            for embedding in custom_response_dict["embedding"]
+        ]
         openai_response = CreateEmbeddingResponse(
             data=data,
             model=model_name,
-            usage=prompt_tokens,
-            object=prompt_tokens,
+            usage=Usage(
+                prompt_tokens=prompt_tokens,
+                total_tokens=prompt_tokens,
+            ),
         )
         return openai_response.model_dump()
 
@@ -63,11 +63,22 @@ def make_it_openai_embeddings_compat(
         return {"error": f"An error occurred: {err}"}
 
 
-async def proxy_request(request: web.Request, convert_to_openai=False):
+async def proxy_request(
+    request: web.Request, convert_to_openai: bool = False
+) -> web.Response:
+    """Proxies a request to the target embedding service, optionally converting responses.
+
+    Args:
+        request (web.Request): The incoming HTTP request.
+        convert_to_openai (bool): Whether to convert the response to OpenAI-compatible format.
+
+    Returns:
+        web.Response: The HTTP response sent back to the client.
+    """
     config: ArgoConfig = request.app["config"]
     try:
         # Retrieve the incoming JSON data
-        data = await request.json()
+        data: Dict[str, Any] = await request.json()
         if not data:
             raise ValueError("Invalid input. Expected JSON data.")
         if config.verbose:
@@ -80,30 +91,24 @@ async def proxy_request(request: web.Request, convert_to_openai=False):
             data["model"] = resolve_model_name(
                 data["model"], DEFAULT_MODEL, avail_models=EMBED_MODELS
             )
-        # If "model" is not provided, set the default model
         else:
-            data["model"] = DEFAULT_MODEL
+            data["model"] = DEFAULT_MODEL  # Default model if not provided
 
         # Transform the incoming payload to match the destination API format
         data["user"] = config.user
         data["prompt"] = (
             [data["input"]] if not isinstance(data["input"], list) else data["input"]
         )
-
         del data["input"]
 
-        headers = {
-            "Content-Type": "application/json"
-            # Uncomment and customize if needed
-            # "Authorization": f"Bearer {YOUR_API_KEY}"
-        }
+        headers: Dict[str, str] = {"Content-Type": "application/json"}
 
         # Send transformed request to the target API using aiohttp
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 config.argo_embedding_url, headers=headers, json=data
             ) as resp:
-                response_data = await resp.json()
+                response_data: Dict[str, Any] = await resp.json()
                 resp.raise_for_status()
 
                 if config.verbose:
