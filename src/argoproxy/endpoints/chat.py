@@ -293,12 +293,6 @@ async def send_streaming_request(
                 # Return the chunk as-is (raw text)
                 await send_off_sse(response, chunk)
 
-        # Handle the final chunk for OpenAI-compatible mode
-        if convert_to_openai:
-            # Send the [DONE] marker
-            sse_done_chunk = "data: [DONE]\n\n"
-            await send_off_sse(response, sse_done_chunk)
-
         # Ensure response is properly closed
         await response.write_eof()
 
