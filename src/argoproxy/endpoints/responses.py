@@ -13,11 +13,6 @@ from ..config import ArgoConfig
 from ..constants import CHAT_MODELS
 from ..types import (
     Response,
-    ResponseOutputMessage,
-    ResponseOutputText,
-    ResponseUsage,
-)
-from ..types.responses import (
     ResponseCompletedEvent,
     ResponseContentPartAddedEvent,
     ResponseContentPartDoneEvent,
@@ -25,8 +20,11 @@ from ..types.responses import (
     ResponseInProgressEvent,
     ResponseOutputItemAddedEvent,
     ResponseOutputItemDoneEvent,
+    ResponseOutputMessage,
+    ResponseOutputText,
     ResponseTextDeltaEvent,
     ResponseTextDoneEvent,
+    ResponseUsage,
 )
 from ..utils import (
     calculate_prompt_tokens,

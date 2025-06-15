@@ -13,8 +13,17 @@ from .completions import Completion, CompletionChoice, CompletionUsage
 from .embedding import CreateEmbeddingResponse, Embedding, Usage
 from .responses import (
     Response,
+    ResponseCompletedEvent,
+    ResponseContentPartAddedEvent,
+    ResponseContentPartDoneEvent,
+    ResponseCreatedEvent,
+    ResponseInProgressEvent,
+    ResponseOutputItemAddedEvent,
+    ResponseOutputItemDoneEvent,
     ResponseOutputMessage,
     ResponseOutputText,
+    ResponseTextDeltaEvent,
+    ResponseTextDoneEvent,
     ResponseUsage,
 )
 
@@ -36,7 +45,16 @@ __all__ = [
     "StreamChoice",
     # Response-related types
     "Response",
+    "ResponseCompletedEvent",
+    "ResponseContentPartAddedEvent",
+    "ResponseContentPartDoneEvent",
+    "ResponseCreatedEvent",
+    "ResponseInProgressEvent",
+    "ResponseOutputItemAddedEvent",
+    "ResponseOutputItemDoneEvent",
     "ResponseOutputMessage",
     "ResponseOutputText",
+    "ResponseTextDeltaEvent",
+    "ResponseTextDoneEvent",
     "ResponseUsage",
 ]

@@ -1,10 +1,9 @@
-from typing import Annotated, List, Optional, TypeAlias, Union
+from typing import List, Optional, TypeAlias, Union
 
 from pydantic import BaseModel
 from typing_extensions import Literal
 
-from argoproxy.types.function_call import FunctionTool
-
+from ..types.function_call import FunctionTool
 
 # ==================== Non-Streaming ====================
 
