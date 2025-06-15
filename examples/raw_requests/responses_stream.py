@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()  # Load environment variables from .env file if n
 
 MODEL = os.getenv("MODEL", "argo:gpt-4o")  # Default to "argo:gpt-4o"
-BASE_URL = os.getenv("BASE_URL", "http://localhost:44500")
+BASE_URL = os.getenv("BASE_URL", "http://localhost:44498")
 CHAT_ENDPOINT = f"{BASE_URL}/v1/chat/completions"
 
 def stream_chat_test():

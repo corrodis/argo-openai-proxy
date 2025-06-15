@@ -13,7 +13,7 @@ payload = {
     "model": MODEL,
     "prompt": ["Tell me something interesting about quantum mechanics."],
     "stream": True,
-    "max_tokens": 5,
+    # "max_tokens": 5,
 }
 headers = {
     "Content-Type": "application/json",

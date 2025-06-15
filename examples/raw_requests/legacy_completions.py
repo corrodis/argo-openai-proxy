@@ -16,7 +16,7 @@ payload = {
     "model": MODEL,
     "prompt": ["Tell me something interesting about quantum mechanics."],
     "user": "test_user",  # This will be overridden by the proxy_request function
-    "max_tokens": 5,
+    # "max_tokens": 5,
 }
 headers = {"Content-Type": "application/json"}
 

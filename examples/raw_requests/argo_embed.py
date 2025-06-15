@@ -6,7 +6,7 @@ import requests
 # url = "https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/embed/"
 
 
-BASE_URL = "http://localhost:44500"  # Update if your server is running on a different host/port
+BASE_URL = "http://localhost:44498"  # Update if your server is running on a different host/port
 EMBED_ENDPOINT = f"{BASE_URL}/v1/embed"
 MODEL = "argo:text-embedding-3-small"
 

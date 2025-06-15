@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 MODEL = os.getenv("MODEL", "argo:gpt-4o")
-BASE_URL = os.getenv("BASE_URL", "http://localhost:44500")
+BASE_URL = os.getenv("BASE_URL", "http://localhost:44498")
 RESPONSES_ENDPOINT = f"{BASE_URL}/v1/completions"
 
 def make_response_request():

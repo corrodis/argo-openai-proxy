@@ -8,7 +8,7 @@ MODEL = os.getenv("MODEL", "argo:gpt-4o")  # Default to "ar"argo:gpt-4o"
 
 client = openai.OpenAI(
     api_key=os.getenv("API_KEY", "whatever+random"),
-    base_url=os.getenv("BASE_URL", "http://localhost:44500/v1"),
+    base_url=os.getenv("BASE_URL", "http://localhost:44498/v1"),
 )
 
 
@@ -22,14 +22,14 @@ def stream_chat_test():
             "content": "Tell me something interesting about quantum mechanics.",
         },
     ]
-    max_tokens = 5
+    # max_tokens = 5
 
     try:
         response = client.responses.create(
             model=MODEL,
             instructions="Talk like a pirate.",
             input=messages,
-            max_output_tokens=max_tokens,
+            # max_output_tokens=max_tokens,
         )
         print("Streaming Response:")
         print(response)

@@ -20,7 +20,7 @@ payload = {
         },
     ],
     "user": "test_user",  # This will be overridden by the proxy_request function
-    "max_tokens": 5,
+    # "max_tokens": 5,
 }
 headers = {
     "Content-Type": "application/json",
