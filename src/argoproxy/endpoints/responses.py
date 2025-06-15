@@ -3,7 +3,7 @@ import json
 import time
 import uuid
 from http import HTTPStatus
-from typing import Any, Dict
+from typing import Any, Dict, Union
 
 import aiohttp
 from aiohttp import web
@@ -232,7 +232,7 @@ async def send_streaming_request(
     api_url: str,
     data: Dict[str, Any],
     request: web.Request,
-) -> None:
+) -> web.StreamResponse:
     """Sends a streaming request to an API and streams the response to the client.
 
     Args:
@@ -420,7 +420,7 @@ async def send_streaming_request(
 
 async def proxy_request(
     request: web.Request,
-) -> web.Response:
+) -> Union[web.Response, web.StreamResponse]:
     """Proxies the client's request to an upstream API, handling response streaming and conversion.
 
     Args:
@@ -428,7 +428,7 @@ async def proxy_request(
         convert_to_openai: If True, translates the response to an OpenAI-compatible format.
 
     Returns:
-        A web.Response with the final response from the upstream API.
+        A web.Response or web.StreamResponse with the final response from the upstream API.
     """
     config: ArgoConfig = request.app["config"]
 

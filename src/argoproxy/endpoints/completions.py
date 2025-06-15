@@ -86,7 +86,7 @@ def make_it_openai_completions_compat(
 
 async def proxy_request(
     request: web.Request,
-) -> web.Response:
+) -> Union[web.Response, web.StreamResponse]:
     """Proxies incoming requests to the upstream API and processes responses.
 
     Args:
@@ -94,7 +94,7 @@ async def proxy_request(
         convert_to_openai (bool, optional): Whether to convert the response to OpenAI-compatible format. Defaults to False.
 
     Returns:
-        web.Response: The HTTP response sent back to the client.
+        web.Response or web.StreamResponse: The HTTP response sent back to the client.
 
     Raises:
         ValueError: Raised when the request data is invalid or missing.

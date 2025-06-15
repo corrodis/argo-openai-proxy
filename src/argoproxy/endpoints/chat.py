@@ -3,7 +3,7 @@ import json
 import time
 import uuid
 from http import HTTPStatus
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Optional, Union
 
 import aiohttp
 from aiohttp import web
@@ -49,7 +49,7 @@ def make_it_openai_chat_completions_compat(
     create_timestamp: int,
     prompt_tokens: int,
     is_streaming: bool = False,
-    finish_reason: str = None,
+    finish_reason: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Transforms the custom API response into a format compatible with OpenAI's API.
@@ -233,7 +233,7 @@ async def send_streaming_request(
     openai_compat_fn: Callable[
         ..., Dict[str, Any]
     ] = make_it_openai_chat_completions_compat,
-) -> None:
+) -> web.StreamResponse:
     """Sends a streaming request to an API and streams the response to the client.
 
     Args:
@@ -303,7 +303,7 @@ async def proxy_request(
     request: web.Request,
     *,
     convert_to_openai: bool = True,
-) -> web.Response:
+) -> Union[web.Response, web.StreamResponse]:
     """Proxies the client's request to an upstream API, handling response streaming and conversion.
 
     Args:
@@ -311,7 +311,7 @@ async def proxy_request(
         convert_to_openai: If True, translates the response to an OpenAI-compatible format.
 
     Returns:
-        A web.Response with the final response from the upstream API.
+        A web.Response or web.StreamResponse with the final response from the upstream API.
     """
     config: ArgoConfig = request.app["config"]
 
