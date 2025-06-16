@@ -123,7 +123,7 @@ def version_check():
     if latest and latest != __version__:
         logger.warning(
             f"New version available: {latest} (you have {__version__}). "
-            f"Run 'pip install --upgrade argoproxy' to update."
+            "Run 'pip install --upgrade argo-proxy' to update."
         )
 
 
