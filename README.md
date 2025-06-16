@@ -226,7 +226,11 @@ These endpoints interact directly with the ARGO API and do not convert responses
 
 - **`/v1/chat`**: Proxies requests to the ARGO API without conversion.
 - **`/v1/embed`**: Proxies requests to the ARGO Embedding API without conversion.
-- **`/v1/status`**: Responds with a simple "hello" from GPT-4o, knowing argoproxy is alive.
+
+#### Utility Endpoints
+
+- **`/health`**: Health check endpoint. Returns `200 OK` if the server is running.
+- **`/version`**: Returns the version of the ArgoProxy server. Notifies if a new version is available. Available from v2.7.1.
 
 #### Timeout Override
 

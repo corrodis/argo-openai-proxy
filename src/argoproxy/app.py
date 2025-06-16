@@ -3,8 +3,10 @@ import os
 from aiohttp import web
 from loguru import logger
 
+from .__init__ import __version__
 from .config import load_config
 from .endpoints import chat, completions, embed, extras, responses
+from .endpoints.extras import get_latest_pypi_version
 
 
 async def setup_config(app):
@@ -54,11 +56,6 @@ async def get_models(request: web.Request):
     return extras.get_models()
 
 
-async def get_status(request: web.Request):
-    logger.info("/v1/status")
-    return await extras.get_status()
-
-
 async def docs(request: web.Request):
     msg = "<html><body>Documentation access: Please visit <a href='https://oaklight.github.io/argo-openai-proxy'>https://oaklight.github.io/argo-openai-proxy</a> for full documentation.</body></html>"
     return web.Response(text=msg, status=200, content_type="text/html")
@@ -67,6 +64,18 @@ async def docs(request: web.Request):
 async def health_check(request: web.Request):
     logger.info("/health")
     return web.json_response({"status": "healthy"}, status=200)
+
+
+async def get_version(request: web.Request):
+    logger.info("/version")
+    latest = await get_latest_pypi_version()
+    return web.json_response(
+        {
+            "version": __version__,
+            "latest": latest,
+            "update_available": latest and latest != __version__,
+        }
+    )
 
 
 app = web.Application()
@@ -84,9 +93,9 @@ app.router.add_post("/v1/embeddings", proxy_openai_embedding_request)
 app.router.add_get("/v1/models", get_models)
 
 # extras
-app.router.add_get("/v1/status", get_status)
 app.router.add_get("/v1/docs", docs)
 app.router.add_get("/health", health_check)
+app.router.add_get("/version", get_version)
 
 
 def run(*, host: str = "0.0.0.0", port: int = 8080):

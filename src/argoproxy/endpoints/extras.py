@@ -1,11 +1,10 @@
-import json
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
+import aiohttp
 from aiohttp import web
 
 from ..constants import ALL_MODELS
-from .chat import proxy_request as chat_proxy_request
 
 # Mock data for available models
 MODELS_DATA: Dict[str, Any] = {"object": "list", "data": []}  # type: ignore
@@ -32,20 +31,14 @@ def get_models():
     return web.json_response(MODELS_DATA, status=200)
 
 
-async def get_status():
-    """
-    Makes a real call to GPT-4o using the chat.py proxy_request function.
-    """
-    # Create a mock request to GPT-4o
-    mock_request = {"model": "gpt-4o", "prompt": "Say hello", "user": "system"}
-
-    # Use the chat_proxy_request function to make the call
-    response_data = await chat_proxy_request(
-        convert_to_openai=True, input_data=mock_request
-    )
-
-    # Extract the JSON data from the JSONResponse object
-    json_data = response_data.body
-
-    # Return the JSON data as a new JSONResponse
-    return web.json_response(json.loads(json_data), status=200)
+async def get_latest_pypi_version() -> Optional[str]:
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                "https://pypi.org/pypi/argo-proxy/json", timeout=5
+            ) as response:
+                response.raise_for_status()
+                data = await response.json()
+                return data["info"]["version"]
+    except Exception:
+        return None

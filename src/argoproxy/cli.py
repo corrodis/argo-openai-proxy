@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import asyncio
 import os
 import subprocess
 import sys
@@ -10,6 +11,7 @@ from loguru import logger
 from .__init__ import __version__
 from .app import run
 from .config import PATHS_TO_TRY, validate_config
+from .endpoints.extras import get_latest_pypi_version
 
 logger.remove()  # Remove default handlers
 logger.add(sys.stdout, colorize=True, format="<level>{message}</level>", level="INFO")
@@ -74,9 +76,8 @@ def parsing_args() -> argparse.Namespace:
     parser.add_argument(
         "--version",
         "-V",
-        action="version",
-        version=f"%(prog)s {__version__}",
-        help="Show the version and exit.",
+        action="store_true",  # Changed from 'version' to 'store_true'
+        help="Show the version and check for updates",
     )
 
     args = parser.parse_args()
@@ -116,17 +117,31 @@ def open_in_editor(config_path: Optional[str] = None):
     sys.exit(1)
 
 
+def version_check():
+    latest = asyncio.run(get_latest_pypi_version())
+    logger.info(f"Argo-Proxy version: {__version__}")
+    if latest and latest != __version__:
+        logger.warning(
+            f"New version available: {latest} (you have {__version__}). "
+            f"Run 'pip install --upgrade argoproxy' to update."
+        )
+
+
 def main():
     args = parsing_args()
 
     if args.edit:
         open_in_editor(args.config)
         return
+    if args.version:  # Add version check when --version is used
+        version_check()
+        return
 
     set_config_envs(args)
 
     try:
         # Validate config in main process only
+        version_check()
         config_instance = validate_config(args.config, args.show)
         if args.validate:
             logger.info("Configuration validation successful.")
