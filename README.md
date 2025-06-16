@@ -230,7 +230,7 @@ These endpoints interact directly with the ARGO API and do not convert responses
 #### Utility Endpoints
 
 - **`/health`**: Health check endpoint. Returns `200 OK` if the server is running.
-- **`/version`**: Returns the version of the ArgoProxy server. Notifies if a new version is available. Available from v2.7.1.
+- **`/version`**: Returns the version of the ArgoProxy server. Notifies if a new version is available. Available from 2.7.0.post1.
 
 #### Timeout Override
 
