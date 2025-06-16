@@ -82,10 +82,7 @@ async def get_version(request: web.Request):
         response.update(
             {
                 "message": f"New version {latest} available",
-                "install_command": (
-                    "pip install --upgrade argo-proxy"
-                    f" or `pip install argo-proxy=={latest}`"
-                ),
+                "install_command": "pip install --upgrade argo-proxy",
             }
         )
     else:
