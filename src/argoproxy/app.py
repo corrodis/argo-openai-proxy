@@ -69,13 +69,29 @@ async def health_check(request: web.Request):
 async def get_version(request: web.Request):
     logger.info("/version")
     latest = await get_latest_pypi_version()
-    return web.json_response(
-        {
-            "version": __version__,
-            "latest": latest,
-            "update_available": latest and latest != __version__,
-        }
-    )
+    update_available = latest and latest != __version__
+
+    response = {
+        "version": __version__,
+        "latest": latest,
+        "up_to_date": not update_available,
+        "pypi": "https://pypi.org/project/argo-proxy/",
+    }
+
+    if update_available:
+        response.update(
+            {
+                "message": f"New version {latest} available",
+                "install_command": (
+                    "pip install --upgrade argo-openai-proxy\n"
+                    f"pip install argo-openai-proxy=={latest}"
+                ),
+            }
+        )
+    else:
+        response["message"] = "You're using the latest version"
+
+    return web.json_response(response)
 
 
 app = web.Application()
