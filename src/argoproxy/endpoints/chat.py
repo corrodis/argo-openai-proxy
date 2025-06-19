@@ -265,7 +265,7 @@ async def send_streaming_request(
                 k: v
                 for k, v in upstream_resp.headers.items()
                 if k.lower()
-                not in ("Content-Type", "content-encoding", "transfer-encoding")
+                not in ("content-type", "content-encoding", "transfer-encoding")
             }
         )
         response = web.StreamResponse(
