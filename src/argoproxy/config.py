@@ -1,6 +1,5 @@
 import json
 import os
-import sys
 import urllib
 from dataclasses import asdict, dataclass
 from hashlib import md5
@@ -11,9 +10,6 @@ import yaml  # type: ignore
 from loguru import logger
 
 from .utils import get_random_port, is_port_available, make_bar
-
-logger.remove()  # Remove default handlers
-logger.add(sys.stdout, colorize=True, format="<level>{message}</level>", level="INFO")
 
 PATHS_TO_TRY = [
     "./config.yaml",

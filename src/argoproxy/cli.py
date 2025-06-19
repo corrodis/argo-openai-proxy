@@ -14,7 +14,12 @@ from .config import PATHS_TO_TRY, validate_config
 from .endpoints.extras import get_latest_pypi_version
 
 logger.remove()  # Remove default handlers
-logger.add(sys.stdout, colorize=True, format="<level>{message}</level>", level="INFO")
+logger.add(
+    sys.stdout,
+    colorize=True,
+    format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{message}</level>",
+    level="INFO",
+)
 
 
 def parsing_args() -> argparse.Namespace:
