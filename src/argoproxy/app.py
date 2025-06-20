@@ -25,7 +25,7 @@ async def proxy_argo_chat_directly(request: web.Request):
 
 async def proxy_embedding_directly(request: web.Request):
     logger.info("/v1/embed")
-    return await embed.proxy_request(request, convert_to_openai=True)
+    return await embed.proxy_request(request, convert_to_openai=False)
 
 
 # ================= OpenAI Compatible =================

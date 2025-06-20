@@ -96,10 +96,13 @@ async def proxy_request(
 
         # Transform the incoming payload to match the destination API format
         data["user"] = config.user
-        data["prompt"] = (
-            [data["input"]] if not isinstance(data["input"], list) else data["input"]
-        )
-        del data["input"]
+        if 'prompt' not in data: # argo-API uses prompt, openAI-API uses input
+            if 'input' not in data:
+                raise ValueError("No 'input' (openAI) or 'prompt' (Argo) field present in the input data.")
+            data["prompt"] = (
+                [data["input"]] if not isinstance(data["input"], list) else data["input"]
+            )
+            del data["input"]
 
         headers: Dict[str, str] = {"Content-Type": "application/json"}
 
