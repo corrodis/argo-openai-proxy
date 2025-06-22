@@ -4,6 +4,8 @@ import time
 import uuid
 from http import HTTPStatus
 from typing import Any, Callable, Dict, Optional, Union
+import re
+import json
 
 import aiohttp
 from aiohttp import web
@@ -117,8 +119,12 @@ def make_it_openai_chat_completions_compat(
                 ],
                 usage=usage,
             )
+        
+        response_dict = openai_response.model_dump()
+        if getattr(config, 'translate_tools', False):
+            response_dict = _translate_to_function_call_if_needed(response_dict, response_text, is_streaming)
 
-        return openai_response.model_dump()
+        return response_dict
 
     except json.JSONDecodeError as err:
         return {"error": f"Error decoding JSON: {err}"}
@@ -157,6 +163,14 @@ def prepare_request_data(
     if "prompt" in data and not isinstance(data["prompt"], list):
         data["prompt"] = [data["prompt"]]
 
+    # expose tools through the system prompt
+    if getattr(config, 'translate_tools', False):
+        if "tools" in data:
+            for msg in data['messages']:
+                if msg['role'] == 'system':
+                    msg['content'] =  _build_function_calling_prompt(data["tools"]) + msg['content']
+                    msg["tools"] = None
+    
     # Convert system message to user message for specific models
     if data["model"] in NO_SYS_MSG:
         if "messages" in data:
@@ -175,6 +189,109 @@ def prepare_request_data(
 
     return data
 
+def _schema_to_prompt(tools):
+    prompt_parts = ["Available functions:"]
+    
+    for tool in tools:
+        func = tool["function"]
+        name = func["name"]
+        description = func["description"]
+        
+        # Parse parameters
+        params = []
+        if "parameters" in func and "properties" in func["parameters"]:
+            for param_name, param_info in func["parameters"]["properties"].items():
+                param_type = param_info.get("type", "string")
+                param_desc = param_info.get("description", "")
+                required = param_name in func["parameters"].get("required", [])
+                
+                param_str = f"{param_name}: {param_type}"
+                if required:
+                    param_str += " (required)"
+                if param_desc:
+                    param_str += f" - {param_desc}"
+                params.append(param_str)
+        
+        func_signature = f"- {name}({', '.join(params)}): {description}"
+        prompt_parts.append(func_signature)
+    
+    return "\n".join(prompt_parts)
+
+def _build_function_calling_prompt(tools):
+    function_descriptions = _schema_to_prompt(tools)
+    
+    prompt = f"""You are a helpful assistant with access to functions. When you want to call a function, use the exact format below in your response to the user:
+
+When an interaction requires a function call, respond IMMEDIATELY and ONLY with:
+FUNCTION_CALL: function_name
+ARGUMENTS: {{"param1": "value1", "param2": "value2"}}
+
+NEVER say "I will", "Let me", "I'll retrieve", or any explanatory text.
+
+Example:
+    User: "What is the summary of document ABC?"
+    Correct response: FUNCTION_CALL: get\nARGUMENTS: {{"docid": "ABC"}}
+    Wrong response: "I will retrieve the content for you."
+
+Just call the function immediately using the exact format above. The ARGUMENTS must be valid JSON. Use double quotes for string.
+
+Otherwise, respond normally with text.
+
+{function_descriptions}"""
+    
+    return prompt
+
+def _parse_function_call_response(response_text):
+    """
+    Parse function call format:
+    FUNCTION_CALL: function_name
+    ARGUMENTS: {"param": "value"}
+    
+    Returns:
+        tuple: (is_function_call: bool, function_name: str, arguments: dict)
+    """
+    
+    # Look for the pattern
+    pattern = r'FUNCTION_CALL:\s*(\w+)\s*\nARGUMENTS:\s*(\{.*?\})'
+    match = re.search(pattern, response_text, re.DOTALL)
+    
+    if match:
+        function_name = match.group(1).strip()
+        arguments_str = match.group(2).strip()
+        
+        try:
+            arguments = json.loads(arguments_str)
+            return True, function_name, arguments
+        except json.JSONDecodeError:
+            # If JSON is malformed, return as regular text
+            return False, None, None
+    
+    return False, None, None
+
+def _translate_to_function_call_if_needed(response_dict: Dict[str, Any], response_text: str, is_streaming: bool) -> Dict[str, Any]:
+    is_function_call, function_name, arguments = _parse_function_call_response(response_text)
+
+    if is_function_call:
+        tool_calls = [{
+            'id': f'call_{uuid.uuid4().hex[:10]}',
+            'type': 'function',
+            'function': {
+                'name': function_name,
+                'arguments': json.dumps(arguments)
+             }
+        }]
+       
+        if is_streaming:
+            response_dict['choices'][0]['delta'] = {'tool_calls': tool_calls}
+        else:
+            response_dict['choices'][0]['message'] = {
+                'content': None,
+                'tool_calls': tool_calls
+            }
+	
+        response_dict['choices'][0]['finish_reason'] = 'tool_calls' 
+    
+    return response_dict
 
 async def send_non_streaming_request(
     session: aiohttp.ClientSession,
