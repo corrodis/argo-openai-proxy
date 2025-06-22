@@ -52,6 +52,7 @@ def make_it_openai_chat_completions_compat(
     prompt_tokens: int,
     is_streaming: bool = False,
     finish_reason: Optional[str] = None,
+    translate_tools: Optional[bool] = False
 ) -> Dict[str, Any]:
     """
     Transforms the custom API response into a format compatible with OpenAI's API.
@@ -121,7 +122,7 @@ def make_it_openai_chat_completions_compat(
             )
         
         response_dict = openai_response.model_dump()
-        if getattr(config, 'translate_tools', False):
+        if translate_tools:
             response_dict = _translate_to_function_call_if_needed(response_dict, response_text, is_streaming)
 
         return response_dict
@@ -164,6 +165,8 @@ def prepare_request_data(
         data["prompt"] = [data["prompt"]]
 
     # expose tools through the system prompt
+    print("DEBUG")
+    print(config)
     if getattr(config, 'translate_tools', False):
         if "tools" in data:
             for msg in data['messages']:
@@ -298,6 +301,7 @@ async def send_non_streaming_request(
     api_url: str,
     data: Dict[str, Any],
     convert_to_openai: bool = False,
+    translate_tools: bool = False,
     openai_compat_fn: Callable[
         ..., Dict[str, Any]
     ] = make_it_openai_chat_completions_compat,
@@ -327,6 +331,7 @@ async def send_non_streaming_request(
                 model_name=data.get("model"),
                 create_timestamp=int(time.time()),
                 prompt_tokens=prompt_tokens,
+                translate_tools=translate_tools,
             )
             return web.json_response(
                 openai_response,
@@ -347,6 +352,7 @@ async def send_streaming_request(
     data: Dict[str, Any],
     request: web.Request,
     convert_to_openai: bool = False,
+    translate_tools: bool = False,
     openai_compat_fn: Callable[
         ..., Dict[str, Any]
     ] = make_it_openai_chat_completions_compat,
@@ -403,6 +409,7 @@ async def send_streaming_request(
                     prompt_tokens=prompt_tokens,
                     is_streaming=True,
                     finish_reason=None,  # Ongoing chunk
+                    translate_tools=translate_tools,
                 )
                 # Wrap the JSON in SSE format
                 await send_off_sse(response, chunk_json)
@@ -450,6 +457,9 @@ async def proxy_request(
 
         # Determine the API URL based on whether streaming is enabled
         api_url = config.argo_stream_url if stream else config.argo_url
+ 
+        # 
+        translate_tools = getattr(config,"translate_tools",False)
 
         # Forward the modified request to the actual API using aiohttp
         async with aiohttp.ClientSession() as session:
@@ -460,6 +470,7 @@ async def proxy_request(
                     data,
                     request,
                     convert_to_openai,
+                    translate_tools,
                 )
             else:
                 return await send_non_streaming_request(
@@ -467,6 +478,7 @@ async def proxy_request(
                     api_url,
                     data,
                     convert_to_openai,
+                    translate_tools
                 )
 
     except ValueError as err:

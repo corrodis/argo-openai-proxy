@@ -63,6 +63,46 @@ def make_it_openai_embeddings_compat(
         return {"error": f"An error occurred: {err}"}
 
 
+def prepare_request_data(
+    data: Dict[str, Any],
+    request: web.Request,
+) -> Dict[str, Any]:
+    """
+    Modifies and prepares the incoming request data by adding user information
+    and remapping the model according to configurations.
+
+    Args:
+        data: The original request data.
+        request: The incoming web request object.
+
+    Returns:
+        The modified and prepared request data.
+    """
+    config: ArgoConfig = request.app["config"]
+    # Automatically replace or insert the user
+    data["user"] = config.user
+    # Remap the model using EMBED_MODELS
+    if "model" in data:
+        data["model"] = resolve_model_name(
+            data["model"], DEFAULT_MODEL, avail_models=EMBED_MODELS
+        )
+    else:
+        data["model"] = DEFAULT_MODEL  # Default model if not provided
+
+    # Transform the incoming payload to match the destination API format
+    if "prompt" not in data:  # argo-API uses prompt, openAI-API uses input
+        if "input" not in data:
+            raise ValueError(
+                "Invalid input. Expected 'input' (openAI) or 'prompt' (argo) field."
+            )
+        data["prompt"] = (
+            [data["input"]] if not isinstance(data["input"], list) else data["input"]
+        )
+        del data["input"]
+
+    return data
+
+
 async def proxy_request(
     request: web.Request, convert_to_openai: bool = False
 ) -> web.Response:
@@ -86,23 +126,7 @@ async def proxy_request(
             logger.info(json.dumps(data, indent=4))
             logger.info(make_bar())
 
-        # Remap the model using EMBED_MODELS
-        if "model" in data:
-            data["model"] = resolve_model_name(
-                data["model"], DEFAULT_MODEL, avail_models=EMBED_MODELS
-            )
-        else:
-            data["model"] = DEFAULT_MODEL  # Default model if not provided
-
-        # Transform the incoming payload to match the destination API format
-        data["user"] = config.user
-        if 'prompt' not in data: # argo-API uses prompt, openAI-API uses input
-            if 'input' not in data:
-                raise ValueError("No 'input' (openAI) or 'prompt' (Argo) field present in the input data.")
-            data["prompt"] = (
-                [data["input"]] if not isinstance(data["input"], list) else data["input"]
-            )
-            del data["input"]
+        data = prepare_request_data(data, request)
 
         headers: Dict[str, str] = {"Content-Type": "application/json"}
 
@@ -116,7 +140,15 @@ async def proxy_request(
 
                 if config.verbose:
                     logger.info(make_bar("[embed] fwd. response"))
-                    logger.info(json.dumps(response_data, indent=4))
+                    # Create a new dict with copied lists to avoid modifying the original
+                    log_data = {
+                        "embedding": [
+                            emb[:3]
+                            + ["......", f"{len(emb) - 3} elements omitted", "......"]
+                            for emb in response_data["embedding"]
+                        ]
+                    }
+                    logger.info(json.dumps(log_data, indent=4))
                     logger.info(make_bar())
 
                 if convert_to_openai:

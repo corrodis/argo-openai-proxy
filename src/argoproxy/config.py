@@ -41,6 +41,7 @@ class ArgoConfig:
         "https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/"
     )
     verbose: bool = True
+    translate_tools: bool = False
 
     @classmethod
     def from_dict(cls, config_dict: dict):
