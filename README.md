@@ -1,6 +1,9 @@
 # argo-openai-proxy
 
 ![PyPI - Version](https://img.shields.io/pypi/v/argo-proxy)
+![GitHub Release](https://img.shields.io/github/v/release/Oaklight/argo-proxy)
+<!-- ![GitHub Tag](https://img.shields.io/github/v/tag/Oaklight/argo-proxy) -->
+
 
 This project is a proxy application that forwards requests to an ARGO API and optionally converts the responses to be compatible with OpenAI's API format. It can be used in conjunction with [autossh-tunnel-dockerized](https://github.com/Oaklight/autossh-tunnel-dockerized) or other secure connection tools.
 
@@ -64,7 +67,8 @@ The machine or server making API calls to Argo must be connected to the Argonne 
   ```
 
   or, if you decide to use dev version (make sure you are at the root of the repo cloned):
-
+  ![GitHub Release](https://img.shields.io/github/v/release/Oaklight/argo-proxy)
+  
   ```bash
   pip install .
   ```
