@@ -1,6 +1,6 @@
+import asyncio
 import json
 import os
-import urllib
 from dataclasses import asdict, dataclass
 from hashlib import md5
 from pathlib import Path
@@ -9,7 +9,8 @@ from typing import Any, Optional, Tuple, Union
 import yaml  # type: ignore
 from loguru import logger
 
-from .utils import get_random_port, is_port_available, make_bar
+from .utils.misc import get_random_port, is_port_available, make_bar
+from .utils.transports import validate_api_async
 
 PATHS_TO_TRY = [
     "./config.yaml",
@@ -40,6 +41,7 @@ class ArgoConfig:
     argo_embedding_url: str = (
         "https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/"
     )
+    argo_model_url: str = "https://apps-dev.inside.anl.gov/argoapi/api/v1/models/"
     verbose: bool = True
     translate_tools: bool = False
 
@@ -95,7 +97,7 @@ class ArgoConfig:
         logger.info(f"Using port {self.port}...")
 
     def _validate_urls(self) -> None:
-        """Validate URL connectivity with option to skip failures."""
+        """Validate URL connectivity using validate_api_async with default retries."""
         required_urls: list[tuple[str, dict[str, Any]]] = [
             (
                 self.argo_url,
@@ -108,28 +110,38 @@ class ArgoConfig:
         ]
 
         logger.info("Validating URL connectivity...")
-        errors = []
 
-        for url, payload in required_urls:
+        failed_urls = []
+
+        async def _validate_single_url(url: str, payload: dict) -> None:
             if not url.startswith(("http://", "https://")):
-                errors.append(f"Invalid URL format: {url}")
-                continue
-
+                logger.error(f"Invalid URL format: {url}")
+                failed_urls.append(url)
+                return
             try:
-                validate_api(url, self.user, payload)
+                await validate_api_async(url, self.user, payload, timeout=5)
             except Exception as e:
-                errors.append(f"{url}: {str(e)}")
+                failed_urls.append(url)
 
-        if errors:
-            logger.error("URL validation errors:")
-            for error in errors:
-                logger.error(f"- {error}")
+        async def _main():
+            await asyncio.gather(
+                *[_validate_single_url(url, payload) for url, payload in required_urls]
+            )
 
+        try:
+            asyncio.run(_main())
+        except RuntimeError:
+            logger.error("Async validation failed unexpectedly.")
+            raise
+
+        if failed_urls:
             if not _get_yes_no_input(
                 prompt="Continue despite connectivity issue? [Y/n] ", default_choice="y"
             ):
                 raise ValueError("URL validation aborted by user")
             logger.info("Continuing with configuration despite URL issues...")
+        else:
+            logger.info("All URLs connectivity validated successfully.")
 
     def _get_verbose(self) -> None:
         """
@@ -168,33 +180,6 @@ class ArgoConfig:
         logger.info(make_bar())
         logger.info(self)  # Use the __str__ method for formatted output
         logger.info(make_bar())
-
-
-def validate_api(url: str, username: str, payload: dict, timeout: int = 2) -> bool:
-    """
-    Helper to validate API endpoint connectivity.
-    Args:
-        url (str): The API URL to validate.
-        username (str): The username included in the request payload.
-        payload (dict): The request payload in dictionary format.
-
-    Returns:
-        bool: True if validation succeeds, False otherwise.
-    Raises:
-        ValueError: If validation fails
-    """
-    payload["user"] = username
-    request_data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(
-        url, data=request_data, headers={"Content-Type": "application/json"}
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as response:
-            if response.getcode() != 200:
-                raise ValueError(f"API returned status code {response.getcode()}")
-            return True
-    except Exception as e:
-        raise ValueError(f"API validation failed for {url}: {str(e)}") from e
 
 
 def _get_user_port_choice(prompt: str, default_port: int) -> int:

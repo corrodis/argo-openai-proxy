@@ -1,6 +1,9 @@
 # argo-openai-proxy
 
 ![PyPI - Version](https://img.shields.io/pypi/v/argo-proxy)
+![GitHub Release](https://img.shields.io/github/v/release/Oaklight/argo-proxy)
+<!-- ![GitHub Tag](https://img.shields.io/github/v/tag/Oaklight/argo-proxy) -->
+
 
 This project is a proxy application that forwards requests to an ARGO API and optionally converts the responses to be compatible with OpenAI's API format. It can be used in conjunction with [autossh-tunnel-dockerized](https://github.com/Oaklight/autossh-tunnel-dockerized) or other secure connection tools.
 
@@ -64,7 +67,8 @@ The machine or server making API calls to Argo must be connected to the Argonne 
   ```
 
   or, if you decide to use dev version (make sure you are at the root of the repo cloned):
-
+  ![GitHub Release](https://img.shields.io/github/v/release/Oaklight/argo-proxy)
+  
   ```bash
   pip install .
   ```
@@ -242,19 +246,42 @@ Details of how to make such override in different query flavors: [Timeout Overri
 
 #### Chat Models
 
-| Original ARGO Model Name | Argo Proxy Name                          |
-| ------------------------ | ---------------------------------------- |
-| `gpt35`                  | `argo:gpt-3.5-turbo`                     |
-| `gpt35large`             | `argo:gpt-3.5-turbo-16k`                 |
-| `gpt4`                   | `argo:gpt-4`                             |
-| `gpt4large`              | `argo:gpt-4-32k`                         |
-| `gpt4turbo`              | `argo:gpt-4-turbo`                       |
-| `gpt4o`                  | `argo:gpt-4o`                            |
-| `gpt4olatest`            | `argo:gpt-4o-latest`                     |
-| `gpto1preview`           | `argo:gpt-o1-preview`, `argo:o1-preview` |
-| `gpto1mini`              | `argo:gpt-o1-mini` , `argo:o1-mini`      |
-| `gpto3mini`              | `argo:gpt-o3-mini` , `argo:o3-mini`      |
-| `gpto1`                  | `argo:gpt-o1` , `argo:o1`                |
+##### OpenAI Series
+
+| Original ARGO Model Name | Argo Proxy Name                                    |
+| ------------------------ | -------------------------------------------------- |
+| `gpt35`                  | `argo:gpt-3.5-turbo`                               |
+| `gpt35large`             | `argo:gpt-3.5-turbo-16k`                           |
+| `gpt4`                   | `argo:gpt-4`                                       |
+| `gpt4large`              | `argo:gpt-4-32k`                                   |
+| `gpt4turbo`              | `argo:gpt-4-turbo`                                 |
+| `gpt4o`                  | `argo:gpt-4o`                                      |
+| `gpt4olatest`            | `argo:gpt-4o-latest`                               |
+| `gpto1preview`           | `argo:gpt-o1-preview`, `argo:o1-preview`           |
+| `gpto1mini`              | `argo:gpt-o1-mini`, `argo:o1-mini`                 |
+| `gpto3mini`              | `argo:gpt-o3-mini`, `argo:o3-mini`                 |
+| `gpto1`                  | `argo:gpt-o1`, `argo:o1`                           |
+| `gpto3`                  | `argo:gpt-o3`, `argo:o3`                           |
+| `gpto4mini`              | `argo:gpt-o4-mini`, `argo:o4-mini`                 |
+| `gpt41`                  | `argo:gpt-4.1`                                     |
+| `gpt41mini`              | `argo:gpt-4.1-mini`                                |
+| `gpt41nano`              | `argo:gpt-4.1-nano`                                |
+
+##### Google Gemini Series
+
+| Original ARGO Model Name | Argo Proxy Name                                    |
+| ------------------------ | -------------------------------------------------- |
+| `gemini25pro`            | `argo:gemini-2.5-pro`                              |
+| `gemini25flash`          | `argo:gemini-2.5-flash`                            |
+
+##### Anthropic Claude Series
+
+| Original ARGO Model Name | Argo Proxy Name                                    |
+| ------------------------ | -------------------------------------------------- |
+| `claudeopus4`            | `argo:claude-opus-4`, `argo:claude-4-opus`         |
+| `claudesonnet4`          | `argo:claude-sonnet-4`, `argo:claude-4-sonnet`     |
+| `claudesonnet37`         | `argo:claude-sonnet-3.7`, `argo:claude-3.7-sonnet` |
+| `claudesonnet35v2`       | `argo:claude-sonnet-3.5`, `argo:claude-3.5-sonnet` |
 
 #### Embedding Models
 
@@ -340,7 +367,6 @@ $ tree -I "__pycache__|*.egg-info|dist|dev_scripts|config.yaml"
 │       ├── app.py
 │       ├── cli.py
 │       ├── config.py
-│       ├── constants.py
 │       ├── endpoints
 │       │   ├── chat.py
 │       │   ├── completions.py
@@ -348,6 +374,7 @@ $ tree -I "__pycache__|*.egg-info|dist|dev_scripts|config.yaml"
 │       │   ├── extras.py
 │       │   └── responses.py
 │       ├── __init__.py
+│       ├── models.py
 │       ├── py.typed
 │       ├── types
 │       │   ├── chat_completion.py
@@ -356,10 +383,15 @@ $ tree -I "__pycache__|*.egg-info|dist|dev_scripts|config.yaml"
 │       │   ├── function_call.py
 │       │   ├── __init__.py
 │       │   └── responses.py
-│       └── utils.py
+│       └── utils
+│           ├── input_handle.py
+│           ├── misc.py
+│           ├── models.py
+│           ├── tokens.py
+│           └── transports.py
 └── timeout_examples.md
 
-8 directories, 44 files
+9 directories, 48 files
 ```
 
 ## Bug Reports and Contributions

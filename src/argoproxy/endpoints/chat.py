@@ -1,4 +1,4 @@
-import fnmatch
+import asyncio
 import json
 import time
 import uuid
@@ -12,7 +12,7 @@ from aiohttp import web
 from loguru import logger
 
 from ..config import ArgoConfig
-from ..constants import CHAT_MODELS
+from ..models import ModelRegistry
 from ..types import (
     ChatCompletion,
     ChatCompletionChunk,
@@ -22,27 +22,18 @@ from ..types import (
     NonStreamChoice,
     StreamChoice,
 )
-from ..utils import (
-    calculate_prompt_tokens,
-    count_tokens,
-    make_bar,
-    resolve_model_name,
-    send_off_sse,
+from ..types.chat_completion import FINISH_REASONS
+from ..utils.input_handle import (
+    handle_multiple_entries_prompt,
+    handle_no_sys_msg,
+    handle_non_stream_only,
+    # handle_option_2_input,
 )
+from ..utils.misc import make_bar
+from ..utils.tokens import calculate_prompt_tokens, count_tokens
+from ..utils.transports import send_off_sse
 
-DEFAULT_MODEL = "gpt4o"
-
-NO_SYS_MSG_PATTERNS = {
-    "^argo:gpt-o.*$",
-    "^argo:o.*$",
-    "^gpto.*$",
-}
-
-NO_SYS_MSG = [
-    model
-    for model in CHAT_MODELS
-    if any(fnmatch.fnmatch(model, pattern) for pattern in NO_SYS_MSG_PATTERNS)
-]
+DEFAULT_MODEL = "argo:gpt-4o"
 
 
 def make_it_openai_chat_completions_compat(
@@ -51,7 +42,7 @@ def make_it_openai_chat_completions_compat(
     create_timestamp: int,
     prompt_tokens: int,
     is_streaming: bool = False,
-    finish_reason: Optional[str] = None,
+    finish_reason: Optional[FINISH_REASONS] = None,
     translate_tools: Optional[bool] = False
 ) -> Dict[str, Any]:
     """
@@ -78,6 +69,7 @@ def make_it_openai_chat_completions_compat(
         # Extract the response text
         response_text = custom_response_dict.get("response", "")
 
+        usage = None
         if not is_streaming:
             # only count usage if not stream
             # Calculate token counts (simplified example, actual tokenization may differ)
@@ -133,62 +125,60 @@ def make_it_openai_chat_completions_compat(
         return {"error": f"An error occurred: {err}"}
 
 
-def prepare_request_data(
-    data: Dict[str, Any],
-    request: web.Request,
+def prepare_chat_request_data(
+    data: Dict[str, Any], config: ArgoConfig, model_registry: ModelRegistry
 ) -> Dict[str, Any]:
     """
-    Modifies and prepares the incoming request data by adding user information
-    and remapping the model according to configurations.
+    Prepares chat request data for upstream APIs based on model type.
 
     Args:
-        data: The original request data.
-        request: The incoming web request object.
+        data: The incoming request data.
+        config: The ArgoConfig object containing configuration settings.
+        model_registry: The ModelRegistry object containing model mappings.
 
     Returns:
-        The modified and prepared request data.
+        The modified request data.
     """
-    config: ArgoConfig = request.app["config"]
-    # Automatically replace or insert the user
+    # Automatically replace or insert user information
     data["user"] = config.user
 
-    # Remap the model using MODEL_AVAIL
-    if "model" in data:
-        data["model"] = resolve_model_name(
-            data["model"], DEFAULT_MODEL, avail_models=CHAT_MODELS
-        )
-    else:
+    # Remap the model name
+    if "model" not in data:
         data["model"] = DEFAULT_MODEL
+    data["model"] = model_registry.resolve_model_name(data["model"], model_type="chat")
 
-    # Convert prompt to list if it's not already
+    # Convert prompt to list if necessary
     if "prompt" in data and not isinstance(data["prompt"], list):
         data["prompt"] = [data["prompt"]]
 
-    # expose tools through the system prompt
-    print("DEBUG")
-    print(config)
     if getattr(config, 'translate_tools', False):
         if "tools" in data:
             for msg in data['messages']:
                 if msg['role'] == 'system':
                     msg['content'] =  _build_function_calling_prompt(data["tools"]) + msg['content']
                     msg["tools"] = None
-    
-    # Convert system message to user message for specific models
-    if data["model"] in NO_SYS_MSG:
-        if "messages" in data:
-            for message in data["messages"]:
-                if message["role"] == "system":
-                    message["role"] = "user"
-        if "system" in data:
-            if isinstance(data["system"], str):
-                data["system"] = [data["system"]]
-            elif not isinstance(data["system"], list):
-                raise ValueError("System prompt must be a string or list")
-            data["prompt"] = data["system"] + data["prompt"]
-            del data["system"]
-            if config.verbose:
-                logger.info(f"New data is {data}")
+            data['tools'] = None
+
+    # # Apply transformations based on model type
+    # if data["model"] in model_registry.option_2_input_models:
+    #     # Transform data for models requiring `system` and `prompt` structure only
+    #     data = handle_option_2_input(data)
+
+    # flatten the list of strings into a single string in case of multiple prompts
+    if isinstance(data.get("prompt"), list):
+        data["prompt"] = ["\n\n".join(data["prompt"]).strip()]
+
+    if data["model"] in model_registry.no_sys_msg_models:
+        data = handle_no_sys_msg(data)
+
+    if data["model"] not in model_registry.streamable_models:
+        data = handle_non_stream_only(data)
+
+    data = handle_multiple_entries_prompt(data)
+
+    # if config.verbose:
+    #     logger.info(make_bar("Transformed Request"))
+    #     logger.info(f"{json.dumps(data, indent=2)}")
 
     return data
 
@@ -353,9 +343,11 @@ async def send_streaming_request(
     request: web.Request,
     convert_to_openai: bool = False,
     translate_tools: bool = False,
+    *,
     openai_compat_fn: Callable[
         ..., Dict[str, Any]
     ] = make_it_openai_chat_completions_compat,
+    fake_stream: bool = False,
 ) -> web.StreamResponse:
     """Sends a streaming request to an API and streams the response to the client.
 
@@ -366,7 +358,28 @@ async def send_streaming_request(
         request: The web request used for streaming responses.
         convert_to_openai: If True, converts the response to OpenAI format.
         openai_compat_fn: Function for conversion to OpenAI-compatible format.
+        fake_stream: If True, simulates streaming by sending the response in chunks.
     """
+
+    async def handle_chunk(chunk, finish_reason=None):
+        """
+        Handles a chunk of data, converting it if necessary and sending it off.
+        """
+        if convert_to_openai:
+            # Convert the chunk to OpenAI-compatible JSON
+            chunk_json = openai_compat_fn(
+                json.dumps({"response": chunk.decode()}),
+                model_name=data["model"],
+                create_timestamp=created_timestamp,
+                prompt_tokens=prompt_tokens,
+                is_streaming=True,
+                finish_reason=finish_reason,  # May be None for ongoing chunks
+            )
+            await send_off_sse(response, chunk_json)
+        else:
+            # Return the chunk as raw text
+            await send_off_sse(response, chunk)
+
     headers = {
         "Content-Type": "application/json",
         "Accept": "text/plain",
@@ -382,40 +395,54 @@ async def send_streaming_request(
         response_headers = {"Content-Type": "text/plain; charset=utf-8"}
 
     async with session.post(api_url, headers=headers, json=data) as upstream_resp:
+        if upstream_resp.status != 200:
+            # Read error content from upstream response
+            error_text = await upstream_resp.text()
+            # Return JSON error response to client
+            return web.json_response(
+                {"error": f"Upstream API error: {upstream_resp.status} {error_text}"},
+                status=upstream_resp.status,
+                content_type="application/json",
+            )
+
         # Initialize the streaming response
         response_headers.update(
             {
                 k: v
                 for k, v in upstream_resp.headers.items()
                 if k.lower()
-                not in ("content-type", "content-encoding", "transfer-encoding")
+                not in (
+                    "content-type",
+                    "content-encoding",
+                    "transfer-encoding",
+                    "content-length",  # in case of fake streaming
+                )
             }
         )
         response = web.StreamResponse(
             status=upstream_resp.status,
             headers=response_headers,
         )
+
         response.enable_chunked_encoding()
         await response.prepare(request)
 
-        # Stream the response chunk by chunk
-        async for chunk in upstream_resp.content.iter_any():
-            if convert_to_openai:
-                # Convert the chunk to OpenAI-compatible JSON
-                chunk_json = openai_compat_fn(
-                    json.dumps({"response": chunk.decode()}),
-                    model_name=data["model"],
-                    create_timestamp=created_timestamp,
-                    prompt_tokens=prompt_tokens,
-                    is_streaming=True,
-                    finish_reason=None,  # Ongoing chunk
-                    translate_tools=translate_tools,
-                )
-                # Wrap the JSON in SSE format
-                await send_off_sse(response, chunk_json)
-            else:
-                # Return the chunk as-is (raw text)
-                await send_off_sse(response, chunk)
+        if fake_stream:
+            # Get full response first
+            response_data = await upstream_resp.json()
+            response_text = response_data.get("response", "")
+
+            # Split into chunks of ~10 characters to simulate streaming
+            chunk_size = 20
+            for i in range(0, len(response_text), chunk_size):
+                chunk = response_text[i : i + chunk_size]
+                finish_reason = None if i + chunk_size < len(response_text) else "stop"
+                await handle_chunk(chunk.encode(), finish_reason)
+                await asyncio.sleep(0.02)  # Small delay between chunks
+        else:
+            chunk_iterator = upstream_resp.content.iter_any()
+            async for chunk in chunk_iterator:
+                await handle_chunk(chunk)
 
         # Ensure response is properly closed
         await response.write_eof()
@@ -438,6 +465,7 @@ async def proxy_request(
         A web.Response or web.StreamResponse with the final response from the upstream API.
     """
     config: ArgoConfig = request.app["config"]
+    model_registry: ModelRegistry = request.app["model_registry"]
 
     try:
         # Retrieve the incoming JSON data from request if input_data is not provided
@@ -453,11 +481,12 @@ async def proxy_request(
             logger.info(make_bar())
 
         # Prepare the request data
-        data = prepare_request_data(data, request)
+        data = prepare_chat_request_data(data, config, model_registry)
+        # this is the stream flag sent to upstream API
+        upstream_stream = data.get("stream", False)
 
-        # Determine the API URL based on whether streaming is enabled
-        api_url = config.argo_stream_url if stream else config.argo_url
- 
+        # Determine the API URL based on whether streaming is enabled 
+        api_url = config.argo_stream_url if upstream_stream else config.argo_url
         # 
         translate_tools = getattr(config,"translate_tools",False)
 
@@ -471,6 +500,7 @@ async def proxy_request(
                     request,
                     convert_to_openai,
                     translate_tools,
+                    fake_stream=(stream != upstream_stream),
                 )
             else:
                 return await send_non_streaming_request(

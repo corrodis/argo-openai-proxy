@@ -1,9 +1,15 @@
+import os
+
 import httpx
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Configuration
-BASE_URL = "http://localhost:44498"  # Update if your server is running on a different host/port
+BASE_URL = os.getenv("BASE_URL", "http://localhost:44498")
+MODEL = os.getenv("MODEL", "argo:gpt-4o")
+
 CHAT_ENDPOINT = f"{BASE_URL}/v1/chat"
-MODEL = "argo:gpt-4o"
 
 
 print("Running Chat Test with Messages")
@@ -11,7 +17,10 @@ print("Running Chat Test with Messages")
 # Define the request payload using the "messages" field
 payload = {
     "model": MODEL,
-    "prompt": ["Tell me something interesting about quantum mechanics."],
+    "prompt": [
+        "Tell me something interesting about quantum mechanics.",
+        "Wait, I changed my mind. Tell me about the history of the Internet instead.",
+    ],
     "stream": True,
 }
 headers = {

@@ -1,11 +1,16 @@
 import json
+import os
 
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Configuration
-BASE_URL = "http://localhost:44498"  # Update if your server is running on a different host/port
+BASE_URL = os.getenv("BASE_URL", "http://localhost:44498")
+MODEL = os.getenv("MODEL", "argo:gpt-4o")
+
 CHAT_ENDPOINT = f"{BASE_URL}/v1/chat"
-MODEL = "argo:gpt-4o"
 
 # Test Case: Successful Chat Request with Messages
 print("Running Chat Test with Messages")
@@ -13,7 +18,10 @@ print("Running Chat Test with Messages")
 # Define the request payload using the "messages" field
 payload = {
     "model": MODEL,
-    "prompt": ["Tell me something interesting about quantum mechanics. longer passage"],
+    "prompt": [
+        "Tell me something interesting about quantum mechanics. longer passage",
+        "Wait, I changed my mind. Tell me about the history of the Internet instead.",
+    ],
     "user": "test_user",  # This will be overridden by the proxy_request function
 }
 headers = {"Content-Type": "application/json"}

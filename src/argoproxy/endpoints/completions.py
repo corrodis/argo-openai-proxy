@@ -7,14 +7,16 @@ import aiohttp
 from aiohttp import web
 from loguru import logger
 
+from ..config import ArgoConfig
+from ..models import ModelRegistry
+from ..types import Completion, CompletionChoice, CompletionUsage
+from ..types.completions import FINISH_REASONS
+from ..utils.misc import make_bar
 from .chat import (
-    prepare_request_data,
+    prepare_chat_request_data,
     send_non_streaming_request,
     send_streaming_request,
 )
-from ..config import ArgoConfig
-from ..types import Completion, CompletionChoice, CompletionUsage
-from ..utils import make_bar
 
 DEFAULT_STREAM = False
 
@@ -25,8 +27,8 @@ def make_it_openai_completions_compat(
     create_timestamp: int,
     prompt_tokens: int,
     is_streaming: bool = False,
-    finish_reason: Optional[str] = None,
-) -> Union[Dict[str, Any], str]:
+    finish_reason: Optional[FINISH_REASONS] = None,
+) -> Dict[str, Any]:
     """Converts a custom API response to an OpenAI-compatible completion API response.
 
     Args:
@@ -50,6 +52,7 @@ def make_it_openai_completions_compat(
         # Extract the response text
         response_text: str = custom_response_dict.get("response", "")
 
+        usage = None
         # Calculate token counts (simplified example, actual tokenization may differ)
         if not is_streaming:
             completion_tokens: int = len(response_text.split())
@@ -102,6 +105,8 @@ async def proxy_request(
         Exception: Raised for unexpected runtime errors.
     """
     config: ArgoConfig = request.app["config"]
+    model_registry: ModelRegistry = request.app["model_registry"]
+
     try:
         # Retrieve the incoming JSON data
         data: Dict[str, Any] = await request.json()
@@ -115,10 +120,12 @@ async def proxy_request(
             logger.info(make_bar())
 
         # Prepare the request data
-        data = prepare_request_data(data, request)
+        data = prepare_chat_request_data(data, config, model_registry)
+        # this is the stream flag sent to upstream API
+        upstream_stream = data.get("stream", False)
 
         # Determine the API URL based on whether streaming is enabled
-        api_url: str = config.argo_stream_url if stream else config.argo_url
+        api_url: str = config.argo_stream_url if upstream_stream else config.argo_url
 
         # Forward the modified request to the actual API using aiohttp
         async with aiohttp.ClientSession() as session:
@@ -130,6 +137,7 @@ async def proxy_request(
                     request,
                     convert_to_openai=True,
                     openai_compat_fn=make_it_openai_completions_compat,
+                    fake_stream=(stream != upstream_stream),
                 )
             else:
                 return await send_non_streaming_request(

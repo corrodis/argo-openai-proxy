@@ -1,4 +1,4 @@
-import fnmatch
+import asyncio
 import json
 import time
 import uuid
@@ -10,7 +10,7 @@ from aiohttp import web
 from loguru import logger
 
 from ..config import ArgoConfig
-from ..constants import CHAT_MODELS
+from ..models import ModelRegistry
 from ..types import (
     Response,
     ResponseCompletedEvent,
@@ -26,28 +26,13 @@ from ..types import (
     ResponseTextDoneEvent,
     ResponseUsage,
 )
-from ..utils import (
-    calculate_prompt_tokens,
-    count_tokens,
-    make_bar,
-    resolve_model_name,
-    send_off_sse,
+from ..utils.misc import make_bar
+from ..utils.tokens import calculate_prompt_tokens, count_tokens
+from ..utils.transports import send_off_sse
+from .chat import (
+    prepare_chat_request_data,
+    send_non_streaming_request,
 )
-from .chat import send_non_streaming_request
-
-DEFAULT_MODEL = "gpt4o"
-
-NO_SYS_MSG_PATTERNS = {
-    "^argo:gpt-o.*$",
-    "^argo:o.*$",
-    "^gpto.*$",
-}
-
-NO_SYS_MSG = [
-    model
-    for model in CHAT_MODELS
-    if any(fnmatch.fnmatch(model, pattern) for pattern in NO_SYS_MSG_PATTERNS)
-]
 
 INCOMPATIBLE_INPUT_FIELDS = {
     "include",
@@ -173,39 +158,23 @@ def transform_streaming_response(
 
 
 def prepare_request_data(
-    data: Dict[str, Any],
-    request: web.Request,
+    data: Dict[str, Any], config: ArgoConfig, model_registry: ModelRegistry
 ) -> Dict[str, Any]:
     """
-    Modifies and prepares the incoming request data by adding user information
-    and remapping the model according to configurations.
+    Prepares the incoming request data for response models.
 
     Args:
         data: The original request data.
-        request: The incoming web request object.
+        config: Application configuration.
 
     Returns:
         The modified and prepared request data.
     """
-    config: ArgoConfig = request.app["config"]
-    # Automatically replace or insert the user
-    data["user"] = config.user
-
-    # Remap the model using MODEL_AVAIL
-    if "model" in data:
-        data["model"] = resolve_model_name(
-            data["model"], DEFAULT_MODEL, avail_models=CHAT_MODELS
-        )
-    else:
-        data["model"] = DEFAULT_MODEL
-
-    # obtain messages from input
+    # Insert instructions and format messages from input
     messages = data.get("input", [])
-    # Insert instructions as a system message
     if instructions := data.get("instructions", ""):
         messages.insert(0, {"role": "system", "content": instructions})
         del data["instructions"]
-    # replace input with messages
     data["messages"] = messages
     del data["input"]
 
@@ -213,17 +182,14 @@ def prepare_request_data(
         data["max_tokens"] = max_tokens
         del data["max_output_tokens"]
 
-    # Convert system message to user message for specific models
-    if data["model"] in NO_SYS_MSG:
-        if "messages" in data:
-            for message in data["messages"]:
-                if message["role"] == "system":
-                    message["role"] = "user"
+    # Use shared chat request preparation logic
+    data = prepare_chat_request_data(data, config, model_registry)
 
-    # drop other unsupported fields
+    # Drop unsupported fields
     for key in list(data.keys()):
         if key in INCOMPATIBLE_INPUT_FIELDS:
             del data[key]
+
     return data
 
 
@@ -232,6 +198,8 @@ async def send_streaming_request(
     api_url: str,
     data: Dict[str, Any],
     request: web.Request,
+    *,
+    fake_stream: bool = False,
 ) -> web.StreamResponse:
     """Sends a streaming request to an API and streams the response to the client.
 
@@ -241,7 +209,7 @@ async def send_streaming_request(
         data: The JSON payload of the request.
         request: The web request used for streaming responses.
         convert_to_openai: If True, converts the response to OpenAI format.
-        openai_compat_fn: Function for conversion to OpenAI-compatible format.
+        fake_stream: If True, simulates streaming even if the upstream does not support it.
     """
     headers = {
         "Content-Type": "application/json",
@@ -271,7 +239,12 @@ async def send_streaming_request(
                 k: v
                 for k, v in upstream_resp.headers.items()
                 if k.lower()
-                not in ("Content-Type", "content-encoding", "transfer-encoding")
+                not in (
+                    "Content-Type",
+                    "content-encoding",
+                    "transfer-encoding",
+                    "content-length",  # in case of fake streaming
+                )
             }
         )
         response = web.StreamResponse(
@@ -339,21 +312,44 @@ async def send_streaming_request(
         # =======================================
         # ResponseTextDeltaEvent, stream the response chunk by chunk
         cumulated_response = ""
-        async for chunk in upstream_resp.content.iter_any():
-            sequence_number += 1
-            chunk_text = chunk.decode()
-            cumulated_response += chunk_text  # for ResponseTextDoneEvent
+        if fake_stream:
+            # Get full response first
+            response_data = await upstream_resp.json()
+            response_text = response_data.get("response", "")
+            cumulated_response = response_text
 
-            # Convert the chunk to OpenAI-compatible JSON
-            text_delta = transform_streaming_response(
-                json.dumps({"response": chunk_text}),
-                content_index=content_part.content_index,
-                output_index=output_item.output_index,
-                sequence_number=sequence_number,
-                id=output_msg.id,
-            )
-            # Wrap the JSON in SSE format
-            await send_off_sse(response, text_delta)
+            # Split into chunks of ~10 characters to simulate streaming
+            chunk_size = 20
+            for i in range(0, len(response_text), chunk_size):
+                sequence_number += 1
+                chunk_text = response_text[i : i + chunk_size]
+                # Convert the chunk to OpenAI-compatible JSON
+                text_delta = transform_streaming_response(
+                    json.dumps({"response": chunk_text}),
+                    content_index=content_part.content_index,
+                    output_index=output_item.output_index,
+                    sequence_number=sequence_number,
+                    id=output_msg.id,
+                )
+                # Wrap the JSON in SSE format
+                await send_off_sse(response, text_delta)
+                await asyncio.sleep(0.02)  # Small delay between chunks
+        else:
+            async for chunk in upstream_resp.content.iter_any():
+                sequence_number += 1
+                chunk_text = chunk.decode()
+                cumulated_response += chunk_text  # for ResponseTextDoneEvent
+
+                # Convert the chunk to OpenAI-compatible JSON
+                text_delta = transform_streaming_response(
+                    json.dumps({"response": chunk_text}),
+                    content_index=content_part.content_index,
+                    output_index=output_item.output_index,
+                    sequence_number=sequence_number,
+                    id=output_msg.id,
+                )
+                # Wrap the JSON in SSE format
+                await send_off_sse(response, text_delta)
 
         # =======================================
         # ResponseTextDoneEvent, signal the end of the text stream
@@ -431,6 +427,7 @@ async def proxy_request(
         A web.Response or web.StreamResponse with the final response from the upstream API.
     """
     config: ArgoConfig = request.app["config"]
+    model_registry: ModelRegistry = request.app["model_registry"]
 
     try:
         # Retrieve the incoming JSON data from request if input_data is not provided
@@ -446,10 +443,12 @@ async def proxy_request(
             logger.info(make_bar())
 
         # Prepare the request data
-        data = prepare_request_data(data, request)
+        data = prepare_request_data(data, config, model_registry)
+        # this is the stream flag sent to upstream API
+        upstream_stream = data.get("stream", False)
 
         # Determine the API URL based on whether streaming is enabled
-        api_url = config.argo_stream_url if stream else config.argo_url
+        api_url = config.argo_stream_url if upstream_stream else config.argo_url
 
         # Forward the modified request to the actual API using aiohttp
         async with aiohttp.ClientSession() as session:
@@ -459,6 +458,7 @@ async def proxy_request(
                     api_url,
                     data,
                     request,
+                    fake_stream=(stream != upstream_stream),
                 )
             else:
                 return await send_non_streaming_request(

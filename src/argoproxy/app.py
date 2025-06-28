@@ -1,5 +1,4 @@
 import os
-import sys
 
 from aiohttp import web
 from loguru import logger
@@ -8,13 +7,15 @@ from .__init__ import __version__
 from .config import load_config
 from .endpoints import chat, completions, embed, extras, responses
 from .endpoints.extras import get_latest_pypi_version
+from .models import ModelRegistry
 
 
-async def setup_config(app):
+async def prepare_app(app):
     """Load configuration without validation for worker processes"""
     config_path = os.getenv("CONFIG_PATH")
     app["config"], _ = load_config(config_path)
-
+    app["model_registry"] = ModelRegistry(config=app["config"])
+    await app["model_registry"].initialize()
 
 # ================= Argo Direct Access =================
 
@@ -54,7 +55,7 @@ async def proxy_openai_embedding_request(request: web.Request):
 
 async def get_models(request: web.Request):
     logger.info("/v1/models")
-    return extras.get_models()
+    return extras.get_models(request)
 
 
 async def docs(request: web.Request):
@@ -93,7 +94,7 @@ async def get_version(request: web.Request):
 
 
 app = web.Application()
-app.on_startup.append(setup_config)
+app.on_startup.append(prepare_app)
 
 # openai incompatible
 app.router.add_post("/v1/chat", proxy_argo_chat_directly)
